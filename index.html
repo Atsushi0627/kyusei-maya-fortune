@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="生年月日から九星気学×マヤ暦で今日の運勢を診断。金運・恋愛・仕事・タロットまで。">
+  <meta name="theme-color" content="#060612">
+  <meta property="og:title" content="今日の運勢 | 九星×マヤ暦">
+  <meta property="og:description" content="生年月日を入れるだけ。九星気学とマヤ暦で今日のあなたの運勢を占います。">
+  <meta property="og:type" content="website">
+  <title>今日の運勢 | 九星×マヤ暦</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #060612;
+      --bg-deep: #030308;
+      --card: rgba(14, 14, 32, 0.82);
+      --card2: rgba(10, 12, 36, 0.88);
+      --border: rgba(120, 100, 200, 0.22);
+      --text: #eeeef8;
+      --text-sub: #9898c0;
+      --text-xs: #6060a8;
+      --accent: #7c3aed;
+      --accent2: #a855f7;
+      --gold: #d4a853;
+      --maya-jade: #2dd4bf;
+      --kyusei-gold: #f59e0b;
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.55);
+    }
+    html { font-size: 16px; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP','YuGothic',sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== 宇宙背景レイヤー（九星×マヤ） ===== */
+    .bg-layer {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .bg-stars {
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.55), transparent),
+        radial-gradient(1px 1px at 25% 38%, rgba(255,255,255,.35), transparent),
+        radial-gradient(1.5px 1.5px at 42% 8%, rgba(212,168,83,.6), transparent),
+        radial-gradient(1px 1px at 58% 62%, rgba(255,255,255,.4), transparent),
+        radial-gradient(1px 1px at 72% 22%, rgba(45,212,191,.5), transparent),
+        radial-gradient(1.5px 1.5px at 88% 45%, rgba(255,255,255,.45), transparent),
+        radial-gradient(1px 1px at 15% 78%, rgba(167,139,250,.4), transparent),
+        radial-gradient(1px 1px at 35% 88%, rgba(255,255,255,.3), transparent),
+        radial-gradient(1px 1px at 65% 92%, rgba(212,168,83,.35), transparent),
+        radial-gradient(1px 1px at 92% 78%, rgba(45,212,191,.35), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,.2), transparent),
+        radial-gradient(1px 1px at 80% 12%, rgba(255,255,255,.35), transparent);
+      animation: twinkle 8s ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      0%   { opacity: .7; }
+      100% { opacity: 1; }
+    }
+    .bg-nebula {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -5%, rgba(124,58,237,.14) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 0% 60%, rgba(45,212,191,.08) 0%, transparent 50%),
+        radial-gradient(ellipse 45% 35% at 100% 30%, rgba(212,168,83,.07) 0%, transparent 45%),
+        radial-gradient(ellipse 60% 50% at 50% 100%, rgba(30,20,60,.5) 0%, transparent 60%);
+    }
+    /* マヤ暦：階段状ジグザグ模様 */
+    .bg-maya {
+      position: absolute; inset: 0; opacity: .35;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M0 30 L15 15 L30 30 L45 15 L60 30' fill='none' stroke='%23d4a853' stroke-width='0.6' opacity='0.25'/%3E%3Cpath d='M0 45 L15 30 L30 45 L45 30 L60 45' fill='none' stroke='%232dd4bf' stroke-width='0.5' opacity='0.2'/%3E%3C/svg%3E");
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 75%);
+    }
+    /* 九星気学：洛書（3×3）装飾 */
+    .bg-loshu {
+      position: absolute; top: 50%; left: 50%;
+      width: min(90vw, 420px); height: min(90vw, 420px);
+      transform: translate(-50%, -48%);
+      opacity: .07;
+    }
+    .bg-loshu svg { width: 100%; height: 100%; }
+    .bg-loshu .loshu-num {
+      font-family: Georgia, serif; font-size: 28px; font-weight: 700;
+      fill: var(--gold); text-anchor: middle; dominant-baseline: central;
+    }
+    .bg-loshu .loshu-line { stroke: var(--maya-jade); stroke-width: 1; fill: none; opacity: .6; }
+    .bg-loshu .loshu-center { fill: var(--kyusei-gold); opacity: .8; }
+
+    .container { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; position: relative; z-index: 1; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes glow {
+      0%,100% { box-shadow: 0 0 20px rgba(167,139,250,.15); }
+      50%      { box-shadow: 0 0 40px rgba(167,139,250,.35); }
+    }
+    @keyframes themeGlow {
+      0%,100% { box-shadow: 0 0 30px var(--theme-glow,rgba(167,139,250,.1)); }
+      50%      { box-shadow: 0 0 60px var(--theme-glow,rgba(167,139,250,.25)); }
+    }
+    @keyframes themePulse {
+      0%,100% { opacity:.5; }
+      50%      { opacity:1; }
+    }
+
+    /* ===== ページテーマ（運勢レベル連動）===== */
+    body { transition: background .8s ease; }
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--theme-top,transparent) 0%, transparent 70%);
+      transition: background .8s ease;
+    }
+
+    /* 大吉: ゴールド */
+    body.theme-gold { --theme-top: rgba(245,158,11,.08); --theme-glow: rgba(245,158,11,.4); --theme-accent:#f59e0b; --theme-accent2:#fbbf24; }
+    body.theme-gold .fortune-header { border-color: #b4540044; animation: themeGlow 3s ease-in-out infinite; }
+    body.theme-gold .overall-banner  { border-color: #f59e0b88; }
+    body.theme-gold .header h1 { background: linear-gradient(135deg,#fde68a,#f59e0b,#d97706); -webkit-background-clip:text; background-clip:text; }
+
+    /* 吉: エメラルドグリーン */
+    body.theme-green { --theme-top: rgba(16,185,129,.07); --theme-glow: rgba(16,185,129,.35); --theme-accent:#10b981; --theme-accent2:#34d399; }
+    body.theme-green .fortune-header { border-color: #10b98144; animation: themeGlow 3s ease-in-out infinite; }
+    body.theme-green .overall-banner  { border-color: #10b98188; }
+    body.theme-green .header h1 { background: linear-gradient(135deg,#a7f3d0,#10b981,#059669); -webkit-background-clip:text; background-clip:text; }
+
+    /* 中吉: パープルブルー（デフォルト） */
+    body.theme-blue { --theme-top: rgba(99,102,241,.07); --theme-glow: rgba(99,102,241,.3); --theme-accent:#6366f1; --theme-accent2:#818cf8; }
+    body.theme-blue .fortune-header { border-color: #6366f144; }
+    body.theme-blue .header h1 { background: linear-gradient(135deg,#c4b5fd,#818cf8,#6366f1); -webkit-background-clip:text; background-clip:text; }
+
+    /* 小吉: スレート */
+    body.theme-slate { --theme-top: rgba(148,163,184,.05); --theme-glow: rgba(148,163,184,.2); --theme-accent:#94a3b8; --theme-accent2:#cbd5e1; }
+    body.theme-slate .fortune-header { border-color: #94a3b844; }
+    body.theme-slate .header h1 { background: linear-gradient(135deg,#e2e8f0,#94a3b8); -webkit-background-clip:text; background-clip:text; }
+
+    /* 注意: レッド */
+    body.theme-red { --theme-top: rgba(239,68,68,.09); --theme-glow: rgba(239,68,68,.4); --theme-accent:#ef4444; --theme-accent2:#f87171; }
+    body.theme-red .fortune-header { border-color: #ef444444; animation: themeGlow 2.5s ease-in-out infinite; }
+    body.theme-red .overall-banner  { border-color: #ef444488; }
+    body.theme-red .header h1 { background: linear-gradient(135deg,#fca5a5,#ef4444,#b91c1c); -webkit-background-clip:text; background-clip:text; }
+    body.theme-red .btn-fortune { background: linear-gradient(135deg,#991b1b,#ef4444); box-shadow: 0 4px 20px rgba(239,68,68,.4); }
+
+    /* テーマ連動: ボタン・アクセント */
+    body.theme-gold  .btn-fortune { background: linear-gradient(135deg,#b45309,#f59e0b); box-shadow: 0 4px 20px rgba(245,158,11,.5); }
+    body.theme-green .btn-fortune { background: linear-gradient(135deg,#065f46,#10b981); box-shadow: 0 4px 20px rgba(16,185,129,.4); }
+
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--theme-top,transparent) 0%, transparent 70%);
+      transition: background .8s ease;
+    }
+
+    /* ヘッダー */
+    .header { text-align: center; padding: 28px 0 24px; position: relative; }
+    .header-emblem {
+      position: relative; width: 120px; height: 120px; margin: 0 auto 12px;
+    }
+    .header-emblem .emblem-ring {
+      position: absolute; inset: 0;
+      animation: spinSlow 120s linear infinite;
+    }
+    @keyframes spinSlow { to { transform: rotate(360deg); } }
+    .header-emblem .emblem-core {
+      position: absolute; inset: 22px;
+      background: radial-gradient(circle at 40% 35%, rgba(45,212,191,.2), rgba(20,10,50,.9));
+      border: 1.5px solid rgba(212,168,83,.35);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 0 30px rgba(124,58,237,.25), inset 0 0 20px rgba(45,212,191,.08);
+    }
+    .header-badges {
+      display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .sys-badge {
+      font-size: .65rem; font-weight: 700; letter-spacing: .12em;
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .sys-badge.kyusei {
+      background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.35); color: #fcd34d;
+    }
+    .sys-badge.maya {
+      background: rgba(45,212,191,.1); border: 1px solid rgba(45,212,191,.3); color: #5eead4;
+    }
+    .header h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: .06em;
+      background: linear-gradient(135deg, #5eead4 0%, #c4b5fd 45%, #d4a853 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; }
+    .header .sub { font-size: .72rem; color: var(--text-xs); margin-top: 6px;
+      letter-spacing: .18em; }
+    .today-date {
+      margin-top: 12px; display: inline-block;
+      padding: 6px 20px; border-radius: 20px;
+      background: rgba(14,14,32,.7); border: 1px solid rgba(212,168,83,.25);
+      font-size: .82rem; color: var(--text-sub);
+      backdrop-filter: blur(8px);
+    }
+
+    /* 入力カード */
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow); padding: 24px 20px; margin-bottom: 16px;
+      backdrop-filter: blur(12px);
+      position: relative; overflow: hidden;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--maya-jade), var(--gold), var(--accent2), transparent);
+      opacity: .6;
+    }
+    .card::after {
+      content: '☉'; position: absolute; bottom: -20px; right: -10px;
+      font-size: 5rem; opacity: .04; color: var(--gold); pointer-events: none;
+    }
+    .card-title {
+      font-size: .72rem; font-weight: 700; color: var(--text-xs);
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before { content:''; display:inline-block; width:3px; height:14px;
+      background: linear-gradient(var(--accent),var(--accent2)); border-radius:2px; }
+
+    .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .input-group { display: flex; align-items: center; gap: 5px; }
+    .input-group label { font-size: .85rem; color: var(--text-sub); white-space: nowrap; }
+    .num-input {
+      padding: 12px 8px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 1.1rem; color: var(--text); background: #08081a;
+      text-align: center; font-family: inherit;
+      transition: border-color .2s, box-shadow .2s; -moz-appearance: textfield;
+    }
+    .num-input::-webkit-outer-spin-button,
+    .num-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .num-input:focus { outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.2); }
+    .num-input.invalid { border-color: #ef4444; }
+    #inp-year { width: 82px; } #inp-month { width: 56px; } #inp-day { width: 56px; }
+    .input-hint { font-size: .72rem; color: var(--text-xs); margin-top: 8px; }
+
+    /* 性別トグル */
+    .gender-row { display: flex; gap: 10px; margin-top: 14px; }
+    .gender-btn {
+      flex: 1; padding: 10px 0; border-radius: 10px; cursor: pointer;
+      border: 1.5px solid var(--border); background: transparent;
+      color: var(--text-sub); font-size: .95rem; font-weight: 600;
+      font-family: inherit; transition: all .2s; letter-spacing: .06em;
+    }
+    .gender-btn.active {
+      background: linear-gradient(135deg, #2d1060, #4c1d95);
+      border-color: #7c3aed; color: #e9d5ff;
+      box-shadow: 0 2px 12px rgba(124,58,237,.3);
+    }
+
+    .age-badge {
+      display: none; margin-top: 8px;
+      font-size: .88rem; font-weight: 700; color: #a78bfa;
+    }
+
+    .btn-fortune {
+      width: 100%; margin-top: 16px; padding: 17px;
+      background: linear-gradient(135deg, #6d28d9, #a855f7);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      letter-spacing: .06em; transition: opacity .2s, transform .1s;
+      box-shadow: 0 4px 20px rgba(124,58,237,.4);
+    }
+    .btn-fortune:hover { opacity: .9; box-shadow: 0 6px 28px rgba(124,58,237,.6); }
+    .btn-fortune:active { transform: scale(.98); }
+
+    /* 結果 */
+    #result-section { display: none; }
+    #result-section.visible { display: block; animation: fadeUp .4s ease; }
+
+    /* 星図ヘッダー */
+    .fortune-header {
+      background:
+        linear-gradient(160deg, rgba(26,21,69,.95) 0%, rgba(42,21,80,.92) 50%, rgba(26,16,64,.95) 100%);
+      border: 1px solid rgba(212,168,83,.25); border-radius: var(--radius);
+      padding: 22px 20px; text-align: center; margin-bottom: 16px;
+      animation: glow 4s ease-in-out infinite;
+      position: relative; overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .fortune-header::before {
+      content: ''; position: absolute; inset: 8px;
+      border: 1px solid rgba(45,212,191,.12); border-radius: 12px;
+      pointer-events: none;
+    }
+    .fortune-header::after {
+      content: '✦ ✦ ✦ ✦ ✦';
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      font-size: .55rem; letter-spacing: 14px; color: rgba(212,168,83,.35);
+      white-space: nowrap;
+    }
+    .fh-divider {
+      display: flex; align-items: center; gap: 10px; margin: 12px 0 8px;
+      font-size: .65rem; color: var(--text-xs); letter-spacing: .1em;
+    }
+    .fh-divider::before, .fh-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(45,212,191,.4), transparent);
+    }
+    .fh-stars { font-size: .78rem; color: #fcd34d; margin-bottom: 8px; font-weight: 600;
+      text-shadow: 0 0 12px rgba(245,158,11,.3); }
+    .fh-title { font-size: 1.05rem; font-weight: 700; color: #e9d5ff; margin-bottom: 5px; }
+    .fh-maya { font-size: .82rem; color: #5eead4; }
+    .fh-today {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid #4c1d9555;
+      font-size: .76rem; color: var(--text-xs); line-height: 1.9;
+    }
+
+    /* 総合運バナー */
+    .overall-banner {
+      border-radius: var(--radius); padding: 24px 20px;
+      text-align: center; margin-bottom: 16px;
+      border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+      background: rgba(10,12,36,.75);
+      backdrop-filter: blur(8px);
+    }
+    .overall-banner::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, var(--ob-color, #a78bfa) 0%, transparent 55%);
+      opacity: .06;
+    }
+    .ob-deco {
+      position: absolute; top:-30px; right:-30px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: radial-gradient(circle, var(--ob-color, #a78bfa) 0%, transparent 70%);
+      opacity: .08;
+    }
+    .ob-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      color: var(--text-xs); margin-bottom: 10px; }
+    .ob-stars { font-size: 1.8rem; letter-spacing: 6px; margin-bottom: 8px; }
+    .ob-level { font-size: 1.4rem; font-weight: 900; margin-bottom: 12px;
+      letter-spacing: .06em; }
+    .ob-text { font-size: .9rem; line-height: 1.75; color: var(--text-sub); }
+
+    /* 各運勢カード */
+    .fortune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .fortune-item {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 12px;
+      border-top: 3px solid var(--fi-color, var(--border));
+      transition: transform .15s;
+      backdrop-filter: blur(6px);
+    }
+    .fortune-item:hover { transform: translateY(-2px); }
+    .fi-label { font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+      color: var(--text-xs); margin-bottom: 6px; }
+    .fi-stars { font-size: 1rem; letter-spacing: 2px; margin-bottom: 5px; }
+    .fi-text { font-size: .78rem; color: var(--text-sub); line-height: 1.65; }
+
+    /* BEAUTY TODAY */
+    .beauty-section-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .72rem; font-weight: 700; letter-spacing: .14em;
+      color: var(--text-xs); margin: 20px 0 10px;
+    }
+    .beauty-section-title::before, .beauty-section-title::after {
+      content:''; flex:1; height:1px;
+      background: linear-gradient(90deg, transparent, rgba(212,168,83,.5), rgba(45,212,191,.4), transparent);
+    }
+    .beauty-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+    .beauty-card {
+      border-radius: var(--radius); padding: 18px 18px 16px;
+      border: 1px solid var(--border);
+    }
+    .beauty-card.hair-card {
+      background: linear-gradient(135deg, #100a20, #181030);
+      border-color: #3b1d7055;
+    }
+    .beauty-card.makeup-card {
+      background: linear-gradient(135deg, #1a0818, #200a22);
+      border-color: #6b1d5055;
+    }
+    .beauty-card.scent-card {
+      background: linear-gradient(135deg, #0a1a10, #0f200f);
+      border-color: #1a5a2555;
+    }
+    .beauty-card-label {
+      font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      margin-bottom: 10px;
+    }
+    .hair-card .beauty-card-label { color: #c4b5fd; }
+    .makeup-card .beauty-card-label { color: #f9a8d4; }
+    .scent-card .beauty-card-label { color: #6ee7b7; }
+    .beauty-text {
+      font-size: .9rem; line-height: 1.8; color: var(--text-sub);
+    }
+    .beauty-sub {
+      font-size: .72rem; color: var(--text-xs); margin-top: 6px;
+    }
+
+    /* ラッキーアイテム */
+    .lucky-card {
+      background: linear-gradient(135deg, #0f2d18, #131a30);
+      border: 1px solid #1a4a2a; border-radius: var(--radius);
+      padding: 20px; margin-bottom: 12px;
+    }
+    .lucky-title { font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      color: #6ee7b7; margin-bottom: 12px; }
+    .lucky-items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .lucky-tag {
+      padding: 6px 14px; border-radius: 20px;
+      background: #0a2e1a; border: 1px solid #065f46;
+      font-size: .82rem; color: #a7f3d0; font-weight: 600;
+    }
+    .lucky-tag.maya-tag {
+      border-color: #6d28d955; background: #180d38; color: #c4b5fd;
+    }
+
+    /* ラッキーパーソン */
+    .person-card {
+      background: linear-gradient(135deg, #120d28, #1a0d30);
+      border: 1px solid #4c1d9555; border-radius: var(--radius);
+      padding: 20px; margin-bottom: 12px;
+    }
+    .person-title { font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      color: #c4b5fd; margin-bottom: 14px; }
+    .person-stars-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .person-star-badge {
+      padding: 4px 12px; border-radius: 20px;
+      background: #2e1065; border: 1px solid #7c3aed66;
+      font-size: .82rem; color: #ddd6fe; font-weight: 700;
+    }
+    .person-traits { font-size: .85rem; color: var(--text-sub); line-height: 1.75; }
+
+    /* デイリーアドバイス */
+    .advice-card {
+      background: linear-gradient(135deg, #150f00, #1a1200);
+      border: 1px solid #5a3a0055; border-radius: var(--radius);
+      padding: 20px; margin-bottom: 12px;
+    }
+    .advice-title { font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      color: #fde68a; margin-bottom: 12px; }
+    .advice-text { font-size: .92rem; line-height: 1.85; color: #fef3c7; }
+
+    /* 算出根拠 */
+    .today-kin {
+      background: rgba(14,14,32,.75); border: 1px solid rgba(45,212,191,.2);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+      font-size: .78rem; color: var(--text-sub); line-height: 2;
+      backdrop-filter: blur(6px);
+    }
+    .today-kin strong { color: var(--text); }
+    .gogyo-rel {
+      display: inline-block; padding: 2px 10px; border-radius: 10px;
+      font-weight: 700; font-size: .76rem;
+    }
+
+    /* ===== TAROT ===== */
+    .tarot-wrap {
+      margin: 0 auto 20px; width: 200px;
+      perspective: 900px;
+    }
+    .tarot-flip {
+      transition: transform .75s cubic-bezier(.45,.05,.55,.95);
+      transform-style: preserve-3d;
+      position: relative; height: 340px;
+    }
+    .tarot-flip.flipped { transform: rotateY(180deg); }
+    .tarot-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      border-radius: 14px;
+    }
+    .tarot-back-face {
+      background:
+        linear-gradient(160deg, rgba(30,16,80,.95) 0%, rgba(45,21,96,.9) 50%, rgba(26,10,64,.95) 100%);
+      border: 1.5px solid rgba(212,168,83,.4);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      cursor: pointer;
+      box-shadow: inset 0 0 40px rgba(45,212,191,.06);
+      position: relative; overflow: hidden;
+    }
+    .tarot-back-face::before {
+      content: '◈'; position: absolute; font-size: 4rem; opacity: .08; color: var(--gold);
+    }
+    .tarot-back-pattern {
+      font-size: 2.4rem; opacity: .6;
+    }
+    .tarot-back-label {
+      font-size: .72rem; color: #a78bfa; letter-spacing: .2em;
+    }
+    .tarot-back-hint {
+      font-size: .65rem; color: #5050a0; margin-top: 4px;
+    }
+    .tarot-front-face {
+      transform: rotateY(180deg);
+      background: var(--card2); border: 1.5px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 16px 12px 12px; gap: 6px;
+    }
+    .tarot-suit-tag {
+      font-size: .62rem; font-weight: 700; letter-spacing: .12em;
+      padding: 2px 8px; border-radius: 10px; align-self: flex-start;
+    }
+    .tarot-img-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; min-height: 0;
+    }
+    .tarot-img {
+      max-width: 100%; max-height: 200px;
+      object-fit: contain; border-radius: 4px;
+      display: block;
+    }
+    .tarot-img.reversed { transform: rotate(180deg); }
+    .tarot-icon { font-size: 2.2rem; text-align: center; }
+    .tarot-name {
+      font-size: .95rem; font-weight: 800; text-align: center;
+      color: var(--text); line-height: 1.3;
+    }
+    .tarot-pos {
+      font-size: .7rem; text-align: center; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px; align-self: center;
+    }
+    .tarot-key {
+      font-size: .68rem; text-align: center; color: var(--text-sub);
+      line-height: 1.4;
+    }
+    .tarot-info {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 16px 14px; margin-bottom: 10px;
+    }
+    .tarot-info-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .14em;
+      color: #a78bfa; margin-bottom: 10px;
+    }
+    .tarot-adv {
+      font-size: .9rem; line-height: 1.8; color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+    .tarot-resonance {
+      font-size: .72rem; color: var(--text-xs); padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-draw {
+      display: block; width: 100%; padding: 12px;
+      background: transparent; border: 1.5px solid #4c1d95;
+      border-radius: 10px; color: #a78bfa; font-size: .95rem;
+      font-weight: 700; cursor: pointer; font-family: inherit;
+      letter-spacing: .06em; transition: all .2s; margin-bottom: 14px;
+    }
+    .btn-draw:hover { background: #2e1065; border-color: #7c3aed; }
+    .btn-draw.drawn { opacity: .5; cursor: default; pointer-events: none; }
+
+    @media (max-width: 380px) {
+      .fortune-grid { grid-template-columns: 1fr; }
+      .ob-stars { font-size: 1.4rem; }
+      .tarot-wrap { width: 170px; }
+      .tarot-flip { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 背景：宇宙・マヤ模様・九星洛書 -->
+<div class="bg-layer" aria-hidden="true">
+  <div class="bg-nebula"></div>
+  <div class="bg-stars"></div>
+  <div class="bg-maya"></div>
+  <div class="bg-loshu">
+    <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+      <rect class="loshu-line" x="50" y="50" width="200" height="200" rx="4"/>
+      <line class="loshu-line" x1="150" y1="50" x2="150" y2="250"/>
+      <line class="loshu-line" x1="50" y1="150" x2="250" y2="150"/>
+      <circle class="loshu-center" cx="150" cy="150" r="18"/>
+      <text class="loshu-num" x="100" y="105">4</text>
+      <text class="loshu-num" x="150" y="105">9</text>
+      <text class="loshu-num" x="200" y="105">2</text>
+      <text class="loshu-num" x="100" y="155">3</text>
+      <text class="loshu-num" x="150" y="155">5</text>
+      <text class="loshu-num" x="200" y="155">7</text>
+      <text class="loshu-num" x="100" y="205">8</text>
+      <text class="loshu-num" x="150" y="205">1</text>
+      <text class="loshu-num" x="200" y="205">6</text>
+    </svg>
+  </div>
+</div>
+
+<div class="container">
+
+  <header class="header">
+    <div class="header-emblem">
+      <svg class="emblem-ring" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="56" fill="none" stroke="rgba(212,168,83,.35)" stroke-width="1" stroke-dasharray="4 6"/>
+        <circle cx="60" cy="60" r="48" fill="none" stroke="rgba(45,212,191,.25)" stroke-width=".8"/>
+        <polygon points="60,8 68,28 88,28 72,42 78,62 60,50 42,62 48,42 32,28 52,28" fill="none" stroke="rgba(212,168,83,.4)" stroke-width=".8"/>
+        <text x="60" y="18" text-anchor="middle" fill="rgba(245,158,11,.7)" font-size="7" font-weight="700">九星</text>
+        <text x="60" y="108" text-anchor="middle" fill="rgba(45,212,191,.7)" font-size="6" font-weight="700">マヤ</text>
+      </svg>
+      <div class="emblem-core">☉</div>
+    </div>
+    <div class="header-badges">
+      <span class="sys-badge kyusei">九星気学</span>
+      <span class="sys-badge maya">マヤ暦</span>
+    </div>
+    <h1>今日の運勢</h1>
+    <p class="sub">KYUSEI × MAYA CALENDAR</p>
+    <div class="today-date" id="today-date"></div>
+  </header>
+
+  <!-- 入力 -->
+  <div class="card">
+    <div class="card-title">生年月日を入力</div>
+
+    <div class="input-row">
+      <div class="input-group">
+        <input class="num-input" id="inp-year" type="number" min="1920" max="2025"
+               placeholder="1990" inputmode="numeric">
+        <label for="inp-year">年</label>
+      </div>
+      <div class="input-group">
+        <input class="num-input" id="inp-month" type="number" min="1" max="12"
+               placeholder="1" inputmode="numeric">
+        <label for="inp-month">月</label>
+      </div>
+      <div class="input-group">
+        <input class="num-input" id="inp-day" type="number" min="1" max="31"
+               placeholder="1" inputmode="numeric">
+        <label for="inp-day">日</label>
+      </div>
+    </div>
+    <div class="age-badge" id="age-badge"></div>
+    <div class="gender-row">
+      <button class="gender-btn active" id="btn-female" type="button">♀ 女性</button>
+      <button class="gender-btn" id="btn-male" type="button">♂ 男性</button>
+    </div>
+    <p class="input-hint" style="margin-top:10px">例）1990年 1月 1日 → 性別を選んで「運勢を見る」をタップ</p>
+    <button class="btn-fortune" id="btn-fortune">✨ 今日の運勢を見る</button>
+  </div>
+
+  <!-- 結果 -->
+  <div id="result-section">
+
+    <!-- 星図ヘッダー -->
+    <div class="fortune-header">
+      <div class="fh-stars" id="fh-stars"></div>
+      <div class="fh-title" id="fh-title"></div>
+      <div class="fh-maya" id="fh-maya"></div>
+      <div class="fh-today" id="fh-today"></div>
+    </div>
+
+    <!-- 総合運 -->
+    <div class="overall-banner" id="overall-banner">
+      <div class="ob-deco"></div>
+      <div class="ob-label">TODAY'S FORTUNE ─ 総合運</div>
+      <div class="ob-stars" id="ob-stars"></div>
+      <div class="ob-level" id="ob-level"></div>
+      <div class="ob-text" id="ob-text"></div>
+    </div>
+
+    <!-- 4運グリッド -->
+    <div class="fortune-grid">
+      <div class="fortune-item">
+        <div class="fi-label">💰 金運</div>
+        <div class="fi-stars" id="fi-money-stars"></div>
+        <div class="fi-text" id="fi-money-text"></div>
+      </div>
+      <div class="fortune-item">
+        <div class="fi-label">💕 恋愛運</div>
+        <div class="fi-stars" id="fi-love-stars"></div>
+        <div class="fi-text" id="fi-love-text"></div>
+      </div>
+      <div class="fortune-item">
+        <div class="fi-label">💼 仕事・学業運</div>
+        <div class="fi-stars" id="fi-work-stars"></div>
+        <div class="fi-text" id="fi-work-text"></div>
+      </div>
+      <div class="fortune-item">
+        <div class="fi-label">⚡ 行動運</div>
+        <div class="fi-stars" id="fi-action-stars"></div>
+        <div class="fi-text" id="fi-action-text"></div>
+      </div>
+    </div>
+
+    <!-- BEAUTY TODAY -->
+    <div class="beauty-section-title">✦ BEAUTY TODAY ✦</div>
+    <div class="beauty-grid">
+      <div class="beauty-card hair-card">
+        <div class="beauty-card-label">✂️ HAIR STYLE ─ ヘアスタイルのポイント</div>
+        <div class="beauty-text" id="beauty-hair"></div>
+        <div class="beauty-sub" id="beauty-hair-sub"></div>
+      </div>
+      <div class="beauty-card makeup-card">
+        <div class="beauty-card-label">💄 MAKE UP ─ メイクのポイント</div>
+        <div class="beauty-text" id="beauty-makeup"></div>
+        <div class="beauty-sub" id="beauty-makeup-sub"></div>
+      </div>
+      <div class="beauty-card scent-card">
+        <div class="beauty-card-label">🌸 FRAGRANCE ─ 今日の香り</div>
+        <div class="beauty-text" id="beauty-scent"></div>
+        <div class="beauty-sub" id="beauty-scent-sub"></div>
+      </div>
+    </div>
+
+    <!-- ラッキーアイテム -->
+    <div class="lucky-card">
+      <div class="lucky-title">🍀 LUCKY ITEM</div>
+      <div class="lucky-items" id="lucky-items"></div>
+    </div>
+
+    <!-- ラッキーパーソン -->
+    <div class="person-card">
+      <div class="person-title">👤 LUCKY PERSON ─ 今日あなたを高めてくれる人</div>
+      <div class="person-stars-row">
+        <span class="person-star-badge" id="lp-badge"></span>
+      </div>
+      <div class="person-traits" id="lp-traits"></div>
+    </div>
+
+    <!-- デイリーアドバイス -->
+    <div class="advice-card">
+      <div class="advice-title">🌟 TODAY'S ADVICE</div>
+      <div class="advice-text" id="advice-text"></div>
+    </div>
+
+    <!-- タロット -->
+    <div class="beauty-section-title">✦ TAROT ✦</div>
+    <div class="tarot-wrap">
+      <div class="tarot-flip" id="tarot-flip">
+        <div class="tarot-face tarot-back-face" id="tarot-back">
+          <div class="tarot-back-pattern">🌌</div>
+          <div class="tarot-back-label">TAROT</div>
+          <div class="tarot-back-hint">カードをタップ</div>
+        </div>
+        <div class="tarot-face tarot-front-face" id="tarot-front">
+          <!-- JS で埋める -->
+        </div>
+      </div>
+    </div>
+    <button class="btn-draw" id="btn-draw">🃏 本日のカードを引く</button>
+    <div class="tarot-info" id="tarot-info" style="display:none">
+      <div class="tarot-info-title">✦ カードからのメッセージ</div>
+      <div class="tarot-adv" id="tarot-adv"></div>
+      <div class="tarot-resonance" id="tarot-resonance"></div>
+    </div>
+
+    <!-- 算出根拠 -->
+    <div class="today-kin" id="today-kin"></div>
+
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   共通ユーティリティ
+============================================================ */
+var STAR_NAMES = {1:'一白水星',2:'二黒土星',3:'三碧木星',4:'四緑木星',5:'五黄土星',
+                  6:'六白金星',7:'七赤金星',8:'八白土星',9:'九紫火星'};
+
+/* ============================================================
+   九星本命星算出
+============================================================ */
+function getHonmeiStar(year, month, day) {
+  var y = year;
+  if (month === 1 || (month === 2 && day <= 3)) y -= 1;
+  var s = String(y).split('').reduce(function(a,b){ return a+Number(b); },0);
+  while (s >= 10) s = String(s).split('').reduce(function(a,b){ return a+Number(b); },0);
+  var star = 11 - s;
+  if (star >= 10) star -= 9;
+  if (star === 0) star = 9;
+  return { star: star, name: STAR_NAMES[star] };
+}
+
+function isLeap(year) {
+  return (year%4===0 && year%100!==0) || (year%400===0);
+}
+
+/* ============================================================
+   年齢・月命星
+============================================================ */
+function calculateAge(year, month, day) {
+  var t = new Date(); var age = t.getFullYear()-year;
+  var m=t.getMonth()+1, d=t.getDate();
+  if (m<month||(m===month&&d<day)) age--;
+  return age;
+}
+
+function getEffectiveStar(year, month, day) {
+  var age = calculateAge(year, month, day);
+  if (age <= 32) {
+    var h = getHonmeiStar(year, month, day);
+    var group = (h.star-1)%3;
+    var base = [8,5,2][group];
+    var m = month; if (day<6){m--;if(m<=0)m=12;}
+    var offset = m-2; if(offset<0)offset+=12;
+    var star = ((base-offset-1)%9+9)%9+1;
+    return { star:star, name:STAR_NAMES[star], type:'月命星', age:age, honmei:h };
+  }
+  var h = getHonmeiStar(year, month, day);
+  return { star:h.star, name:h.name, type:'本命星', age:age, honmei:h };
+}
+
+/* ============================================================
+   マヤKIN算出
+============================================================ */
+var MAYA_TABLE = {
+  1910:[62,93,121,152,182,213,243,14,45,75,106,136],
+  1911:[167,198,226,257,27,58,88,119,150,180,211,241],
+  1912:[12,43,71,102,132,163,193,224,255,25,56,86],
+  1913:[117,148,176,207,237,8,38,69,100,130,161,191],
+  1914:[222,253,21,52,82,113,143,174,205,235,6,36],
+  1915:[67,98,126,157,187,218,248,19,50,80,111,141],
+  1916:[172,203,231,2,32,63,93,124,155,185,216,246],
+  1917:[17,48,76,107,137,168,198,229,0,30,61,91],
+  1918:[122,153,181,212,242,13,43,74,105,135,166,196],
+  1919:[227,258,26,57,87,118,148,179,210,240,11,41],
+  1920:[72,103,131,162,192,223,253,24,55,85,116,146],
+  1921:[177,208,236,7,37,68,98,129,160,190,221,251],
+  1922:[22,53,81,112,142,173,203,234,5,35,66,96],
+  1923:[127,158,186,217,247,18,48,79,110,140,171,201],
+  1924:[232,3,31,62,92,123,153,184,215,245,16,46],
+  1925:[77,108,136,167,197,228,258,29,60,90,121,151],
+  1926:[182,213,241,12,42,73,103,134,165,195,226,256],
+  1927:[27,58,86,117,147,178,208,239,10,40,71,101],
+  1928:[132,163,191,222,252,23,53,84,115,145,176,206],
+  1929:[237,8,36,67,97,128,158,189,220,250,21,51],
+  1930:[82,113,141,172,202,233,3,34,65,95,126,156],
+  1931:[187,218,246,17,47,78,108,139,170,200,231,1],
+  1932:[32,63,91,122,152,183,213,244,15,45,76,106],
+  1933:[137,168,196,227,257,28,58,89,120,150,181,211],
+  1934:[242,13,41,72,102,133,163,194,225,255,26,56],
+  1935:[87,118,146,177,207,238,8,39,70,100,131,161],
+  1936:[192,223,251,22,52,83,113,144,175,205,236,6],
+  1937:[37,68,96,127,157,188,218,249,20,50,81,111],
+  1938:[142,173,201,232,2,33,63,94,125,155,186,216],
+  1939:[247,18,46,77,107,138,168,199,230,0,31,61],
+  1940:[92,123,151,182,212,243,13,44,75,105,136,166],
+  1941:[197,228,256,27,57,88,118,149,180,210,241,11],
+  1942:[42,73,101,132,162,193,223,254,25,55,86,116],
+  1943:[147,178,206,237,7,38,68,99,130,160,191,221],
+  1944:[252,23,51,82,112,143,173,204,235,5,36,66],
+  1945:[97,128,156,187,217,248,18,49,80,110,141,171],
+  1946:[202,233,1,32,62,93,123,154,185,215,246,16],
+  1947:[47,78,106,137,167,198,228,259,30,60,91,121],
+  1948:[152,183,211,242,12,43,73,104,135,165,196,226],
+  1949:[257,28,56,87,117,148,178,209,240,10,41,71],
+  1950:[102,133,161,192,222,253,23,54,85,115,146,176],
+  1951:[207,238,6,37,67,98,128,159,190,220,251,21],
+  1952:[52,83,111,142,172,203,233,4,35,65,96,126],
+  1953:[157,188,216,247,17,48,78,109,140,170,201,231],
+  1954:[2,33,61,92,122,153,183,214,245,15,46,76],
+  1955:[107,138,166,197,227,258,28,59,90,120,151,181],
+  1956:[212,243,11,42,72,103,133,164,195,225,256,26],
+  1957:[57,88,116,147,177,208,238,9,40,70,101,131],
+  1958:[162,193,221,252,22,53,83,114,145,175,206,236],
+  1959:[7,38,66,97,127,158,188,219,250,20,51,81],
+  1960:[112,143,171,202,232,3,33,64,95,125,156,186],
+  1961:[217,248,16,47,77,108,138,169,200,230,1,31]
+};
+
+function tableYearKey(year){ var y=year; while(y>1961)y-=52; while(y<1910)y+=52; return y; }
+
+function getKin(year, month, day) {
+  var key = tableYearKey(year);
+  var kin = MAYA_TABLE[key][month-1] + day;
+  if (isLeap(year) && month===3) kin++;
+  kin = ((kin-1)%260)+1; if(kin<=0)kin+=260;
+  var sealNo=kin%20; if(sealNo===0)sealNo=20;
+  var tone=kin%13; if(tone===0)tone=13;
+  var seals={1:'赤い龍',2:'白い風',3:'青い夜',4:'黄色い種',5:'赤い蛇',
+    6:'白い世界の橋渡し',7:'青い手',8:'黄色い星',9:'赤い月',10:'白い犬',
+    11:'青い猿',12:'黄色い人',13:'赤い空歩く人',14:'白い魔法使い',15:'青い鷲',
+    16:'黄色い戦士',17:'赤い地球',18:'白い鏡',19:'青い嵐',20:'黄色い太陽'};
+  return { kin:kin, sunSeal:{no:sealNo, name:seals[sealNo]}, tone:tone };
+}
+
+/* ============================================================
+   日盤九星算出
+   節入り日（概算）を基準に、月盤中宮から日ごとに1ずつ下降
+============================================================ */
+var SEKKI_DAYS = [0,6,4,6,5,6,6,7,8,8,8,7,7]; // 各月の節入り概算日（index 1-12）
+
+function getDailyKyusei(date) {
+  var year  = date.getFullYear();
+  var month = date.getMonth()+1;
+  var day   = date.getDate();
+
+  var sekkiDay = SEKKI_DAYS[month];
+  var baseYear = year, baseMonth = month;
+  var daysFromSekki = day - sekkiDay;
+
+  if (daysFromSekki < 0) {
+    // 節入り前 → 前月基準
+    baseMonth = month - 1;
+    if (baseMonth <= 0) { baseMonth = 12; baseYear = year - 1; }
+    var daysInPrev = new Date(year, month-1, 0).getDate();
+    daysFromSekki = day + (daysInPrev - SEKKI_DAYS[baseMonth]);
+  }
+
+  // 月盤中宮を算出
+  var yHonmei = getHonmeiStar(baseYear, 3, 15);
+  var yGroup  = (yHonmei.star-1)%3;
+  var mOffset = baseMonth-2; if(mOffset<0)mOffset+=12;
+  var monthStar = ((([8,5,2][yGroup])-mOffset-1)%9+9)%9+1;
+
+  // 日盤 = 月盤 - 節入りからの日数
+  var dailyStar = ((monthStar - daysFromSekki - 1)%9+9)%9+1;
+  return dailyStar;
+}
+
+/* ============================================================
+   五行スコア（本命星 vs 日盤中宮）
+============================================================ */
+var GOGYO = {1:'水',2:'土',3:'木',4:'木',5:'土',6:'金',7:'金',8:'土',9:'火'};
+
+// 相生（AがBを生む）
+var GENERATES = {'水':'木','木':'火','火':'土','土':'金','金':'水'};
+// 相剋（AがBを剋す）
+var DESTROYS  = {'水':'火','木':'土','火':'金','土':'水','金':'木'};
+
+function getBaseScore(myStar, todayStar) {
+  var me = GOGYO[myStar], td = GOGYO[todayStar];
+  if (me === td)                  return 4; // 比和
+  if (GENERATES[td] === me)       return 5; // 相生受（大吉）
+  if (GENERATES[me] === td)       return 3; // 相生放
+  if (DESTROYS[td] === me)        return 1; // 相剋受（凶）
+  if (DESTROYS[me] === td)        return 2; // 相剋放
+  return 3;
+}
+
+function categoryScore(myStar, todayStar, cat) {
+  var s = getBaseScore(myStar, todayStar);
+  var td = GOGYO[todayStar], me = GOGYO[myStar];
+  if (cat==='money' && (td==='金'||me==='金')) s=Math.min(5,s+1);
+  if (cat==='love'  && (td==='水'||td==='火')) s=Math.min(5,s+1);
+  if (cat==='work'  && (td==='木'||td==='火')) s=Math.min(5,s+1);
+  if (cat==='action'&& (td==='木'||td==='火')) s=Math.min(5,s+1);
+  return Math.min(5,Math.max(1,s));
+}
+
+/* ============================================================
+   運勢DB（9星 × 4カテゴリ × 3レベル）
+   level: 1-2=注意, 3=普通, 4-5=吉
+============================================================ */
+var FORTUNE_DB = {
+  1:{ // 一白水星
+    overall:[
+      '今日は迷いや揺れを感じやすい日。一人で抱え込まず、信頼できる人に相談を。焦らず流れを見極めましょう。',
+      '水のように静かに、しかし確実に流れを読む日。丁寧に過ごすことで安定が生まれます。',
+      '水が流れるように直感が冴え渡る日。新しい縁やチャンスを積極的につかみにいきましょう。'
+    ],
+    money:[
+      '衝動買いや大きな出費は控えめに。今日は堅実に守ることが吉です。',
+      '収支のバランスを丁寧に見直す日。基本を守ることで安定が保てます。',
+      '直感を活かした柔軟な判断が金運を開く日。思わぬ良縁やチャンスに要注意。'
+    ],
+    love:[
+      'コミュニケーションに注意が必要な日。相手の気持ちをじっくり受け止めて。',
+      '穏やかに寄り添うことが大切な日。自然体でいることが最大の魅力になります。',
+      '心の通じ合いが深まる日。柔軟な心が相手の心を開きます。深い縁につながるかも。'
+    ],
+    work:[
+      '今日は新しいことより現状の整理整頓が先決。焦らず確実に進めましょう。',
+      '情報収集と調整が力を発揮する日。慎重さが周囲から評価されます。',
+      '情報収集力と洞察力が冴える日。新しいアイデアが次々と浮かびます。積極的に提案を。'
+    ],
+    action:[
+      '今日は大きな動きより現状維持が吉。エネルギーを内側に向けましょう。',
+      'じっくりと状況を見極めながら、着実な一歩を踏み出す日です。',
+      '柔軟に動くことで大きなチャンスをつかめる日。直感を信じて行動しましょう。'
+    ]
+  },
+  2:{ // 二黒土星
+    overall:[
+      '周りに合わせすぎて疲れを感じるかも。今日は自分自身を労わることを優先して。',
+      '大地のように堅実に、コツコツと積み上げる日。焦らず丁寧に過ごすことが大切です。',
+      '積み上げてきたものが実を結ぶ日。周囲との調和を大切にすると、良い流れが生まれます。'
+    ],
+    money:[
+      '計画外の出費が生じやすい日。今日は慎重に管理を。',
+      '堅実な管理が安定を生む日。地道な節約が後で大きな実りになります。',
+      '土台をしっかり固めた先に実りが見えてくる日。着実な積み重ねが金運につながります。'
+    ],
+    love:[
+      '優柔不断が誤解を生みやすい日。今日は自分の気持ちを素直に伝えてみて。',
+      '温かく包み込む愛情が相手に伝わる日。焦らず、じっくり関係を育てましょう。',
+      '献身的な姿勢が深い信頼を生む日。縁を大切にすることで素敵な出会いも。'
+    ],
+    work:[
+      '周囲に頼られすぎて自分のペースが乱れやすい日。NO と言う勇気も大切に。',
+      'サポート力を活かして、周囲との連携を大切に進める日です。',
+      '継続力と献身的な姿勢が評価される日。縁の下の力持ちとして大きく貢献できます。'
+    ],
+    action:[
+      '急ぎの行動は避け、周囲の状況をよく観察してから動きましょう。',
+      '一歩一歩、確実に積み重ねる行動が力になる日です。',
+      '着実な行動力が大きな成果を生む日。大地のような安定感で進みましょう。'
+    ]
+  },
+  3:{ // 三碧木星
+    overall:[
+      '衝動的な判断に注意。気持ちが先走りそうなとき、一歩引いて全体像を確認して。',
+      '好奇心を活かしながら、少し落ち着いて進める日。スピードより正確さを意識して。',
+      '木が芽吹くように、新しいアイデアが次々と湧き出る日。行動力が最大限に発揮されます。'
+    ],
+    money:[
+      '衝動買いに要注意。「後で後悔しないか？」と一度立ち止まって考えて。',
+      '新しいことへの投資は慎重に。まず情報を十分に集めてから判断を。',
+      '新しい分野への投資や挑戦が吉。直感を信じて動くと予想以上のリターンが。'
+    ],
+    love:[
+      '軽率な言動が誤解を招きやすい日。言葉を選んで丁寧にコミュニケーションを。',
+      '楽しい雰囲気が自然な縁をつくる日。フレッシュな笑顔が最大の武器です。',
+      '明るいエネルギーが人を引きつける日。積極的に動くと素敵な出会いが訪れるかも。'
+    ],
+    work:[
+      '飽きっぽさが出やすい日。一つのことに集中して最後までやり切ることが大切。',
+      'コミュニケーション力を活かして、周囲との連携を大切にしましょう。',
+      '発想力とコミュニケーション力が最高潮に。新しいプロジェクトの立ち上げに最適な日。'
+    ],
+    action:[
+      '動き過ぎると空回りしやすい日。今日はエネルギーを一点に集中して。',
+      'ポジティブなエネルギーを活かしつつ、しっかり計画してから動きましょう。',
+      '行動力全開の日。思い立ったらすぐ動く。スピード感が幸運を呼び込みます。'
+    ]
+  },
+  4:{ // 四緑木星
+    overall:[
+      '周囲に流されやすいとき。今日は自分の軸を意識して、大切な決断は後回しに。',
+      '人間関係を丁寧に育む日。自分の意見も大切にしながら、バランスを保ちましょう。',
+      '人との縁が開花する日。周囲との調和を大切にすることで、思いがけない幸運が訪れます。'
+    ],
+    money:[
+      '人間関係がらみの出費に注意。断りにくい誘いにはNOと言える勇気を持って。',
+      '堅実な判断が安心につながる日。大きな動きより現状維持が吉。',
+      '人との縁がお金の縁にもつながる日。良いご縁を大切にすると思わぬ恵みが。'
+    ],
+    love:[
+      '八方美人になりすぎて誰にも深く関われない日。今日は一人の相手と向き合って。',
+      '誠実に向き合うことで信頼が深まる日。自然体のあなたが最も魅力的です。',
+      '社交性と温かさが最高の引力を発揮する日。素直な気持ちを伝えると良い反応が。'
+    ],
+    work:[
+      '曖昧な態度が信頼を損ないやすい日。自分の意見を明確に伝えることが大切。',
+      'チームワークを大切に、各自の役割を尊重しながら進める日です。',
+      '調整力と人脈が光る日。橋渡し役として大きな成果を上げられます。'
+    ],
+    action:[
+      '優柔不断になりやすい日。小さなことから決断して、判断力を鍛えましょう。',
+      '周囲との協調を意識しながら、しっかり自分の方向性を持って動きましょう。',
+      '人とのつながりが行動の原動力になる日。声をかけ合い、一緒に動くと大きな力に。'
+    ]
+  },
+  5:{ // 五黄土星
+    overall:[
+      '強いエネルギーが暴走しやすい日。今日は周囲との摩擦を避け、慎重に動きましょう。',
+      '強烈なエネルギーをコントロールしながら進む日。方向性を定めることが先決です。',
+      '五黄の強烈なエネルギーが最大限に輝く日。大きな決断や行動に最も適したとき。'
+    ],
+    money:[
+      '大きな出費は今日は避けて。エネルギーが強すぎて過剰な判断をしやすい日です。',
+      '慎重な判断が大切な日。基本に立ち返り、余計なリスクは取らないようにしましょう。',
+      '大きな動きに最適な日。勝負に出るなら今日。強力な金運が味方します。'
+    ],
+    love:[
+      '主張が強くなりやすい日。相手を引っ張りすぎず、少し引いてみることも大切。',
+      '強さと温かさのバランスが大切な日。包容力を意識すると関係がうまくいきます。',
+      'リーダーシップと包容力が輝く日。自信を持って自分を表現すると素敵な縁が。'
+    ],
+    work:[
+      '独断専行に注意。今日は周囲の意見をよく聞いてから動きましょう。',
+      '強い意志を持ちながら、周囲との連携も大切にする日です。',
+      '統率力と積極性が最高潮の日。リーダーとして大きな成果を引き出せます。'
+    ],
+    action:[
+      '力が強すぎて暴走リスクあり。今日は慎重に、小さく確認しながら動きましょう。',
+      '方向性をしっかり定めてから動く日。無駄なエネルギーを使わないようにして。',
+      '最強のエネルギーで行動できる日。大きな目標に向けて全力で突き進みましょう。'
+    ]
+  },
+  6:{ // 六白金星
+    overall:[
+      'プライドが邪魔をしやすい日。柔軟性を意識し、周囲の意見も素直に受け取って。',
+      '計画的に進める日。完璧を求めすぎず、まず動くことで道が開けます。',
+      '知性と判断力が冴え渡る日。論理的なアプローチで物事がスムーズに進みます。'
+    ],
+    money:[
+      'プライドから無駄な出費をしやすい日。本当に必要かどうかを冷静に判断して。',
+      '計画的な管理が安定を生む日。投資や大きな動きより、現状の最適化を。',
+      '論理的な判断が金運を開く日。適切な計画と正しい選択で大きな成果が期待できます。'
+    ],
+    love:[
+      '理屈っぽくなりやすい日。感情を素直に伝えることを意識して。',
+      '誠実で真剣な姿勢が相手に伝わる日。正直な気持ちを大切に。',
+      '真摯な姿勢と知性が輝く日。本物の縁を引き寄せる力があります。'
+    ],
+    work:[
+      '完璧主義が邪魔をして進みにくい日。「80点で動く」を意識して。',
+      '論理的な思考で問題解決ができる日。計画通りに着実に進めましょう。',
+      '卓越した判断力とリーダーシップが光る日。重要な会議や決断に最適なタイミング。'
+    ],
+    action:[
+      '慎重になりすぎて動けなくなりやすい日。まず小さな一歩を踏み出してみて。',
+      '計画を立てながら着実に前進する日。細部を確認してから動きましょう。',
+      '理論と実行力が完璧に噛み合う日。自信を持って大きな一手を打ちましょう。'
+    ]
+  },
+  7:{ // 七赤金星
+    overall:[
+      '感情的になりやすい日。大きな出費や重要な約束は後にして、今日は楽しむことに集中を。',
+      '楽しみながら丁寧に進める日。気分の起伏に注意しながら、着実に歩みましょう。',
+      '金星の輝きが全開の日。楽しいことに素直に飛び込むと、運が大きく動き出します。'
+    ],
+    money:[
+      '気分で使いすぎる危険な日。「今日の衝動買いは明日の後悔」と心に刻んで。',
+      '楽しいことにはお金を使っても良い日。ただし計画の範囲内で。',
+      '七赤の金運が輝く日。楽しみながら稼ぐ流れに乗りましょう。臨時収入の予感も。'
+    ],
+    love:[
+      '軽率な発言が誤解を招く日。楽しい雰囲気でも、相手への配慮を忘れずに。',
+      '明るくて楽しい雰囲気が縁を引き寄せる日。自然体で接することが大切。',
+      '魅力が最高潮に達する日。積極的にアプローチすると素敵な展開が期待できます。'
+    ],
+    work:[
+      '軽い気持ちで約束やコミットをしやすい日。責任を持てるかよく考えてから判断を。',
+      '明るいコミュニケーションが周囲を引きつける日。チームの雰囲気を良くする存在に。',
+      'コミュニケーション力と人を引きつける力が最大限に発揮される日。プレゼンや交渉に最適。'
+    ],
+    action:[
+      '勢い任せの行動に注意。楽しい誘いには一度立ち止まって考えてから。',
+      '楽しさを原動力に、しっかりと目標を持って動く日です。',
+      'テンポ良く動くと大きな成果が出る日。楽しみながら全力で動きましょう。'
+    ]
+  },
+  8:{ // 八白土星
+    overall:[
+      '頑固さが出やすい日。今日は周囲の声に耳を傾け、新しい視点を取り入れてみて。',
+      '真面目に積み重ねることが今日の吉。焦らず、信念を持って一歩一歩進みましょう。',
+      '変化の中で真の力を発揮する日。信念を持って動くと、大きな変革をもたらします。'
+    ],
+    money:[
+      '変化への抵抗がチャンスを見逃させる日。新しい視点でお金の流れを見直してみて。',
+      '地道な積み重ねが大きな実りにつながる日。焦らず着実に管理を。',
+      '転換点でのチャンスをしっかりつかめる日。大きな変化への投資が吉に出ます。'
+    ],
+    love:[
+      '意地を張りやすい日。「ごめんなさい」の一言が関係を修復するかもしれません。',
+      '真面目で誠実な姿勢が信頼を育む日。じっくり関係を深めましょう。',
+      '真剣な姿勢と変わらぬ信念が相手の心を動かす日。深い絆が生まれるとき。'
+    ],
+    work:[
+      '変化を嫌がると停滞しやすい日。今日は柔軟に新しいやり方を試してみて。',
+      '地道な努力と信念が周囲から評価される日。着実に前進しましょう。',
+      '変革の力が最大限に発揮される日。新しいシステムや取り組みのスタートに最適。'
+    ],
+    action:[
+      '動きにくさを感じる日。今日は内なる信念を確認する時間に充てましょう。',
+      '真面目に一歩一歩進む日。小さな行動の積み重ねが大きな変化につながります。',
+      '信念を持った行動が大きな変化をもたらす日。思い切って新しい一歩を踏み出して。'
+    ]
+  },
+  9:{ // 九紫火星
+    overall:[
+      '熱しやすく冷めやすい傾向が出やすい日。今日はじっくりと、一つのことに集中して。',
+      '情熱を適切にコントロールしながら進む日。直感は大切に、でも冷静さも忘れずに。',
+      '炎のような情熱と直感が最高潮に達する日。感じたことを信じて、思い切り動きましょう。'
+    ],
+    money:[
+      '見栄のための出費に注意。本当に必要なものかを冷静に確認してから動いて。',
+      '直感を活かしつつ、冷静な判断を心がける日。情熱と論理のバランスが大切。',
+      '直感が金運の扉を開く日。閃きを大切に、素早く動くことで良い流れに乗れます。'
+    ],
+    love:[
+      '情熱が空回りしやすい日。相手のペースも尊重して、少し落ち着いて向き合って。',
+      '情熱的な姿勢が相手に伝わる日。でも押し付けにならないよう配慮も大切に。',
+      '美的センスと情熱が輝く日。素直な気持ちを伝えると、深い絆が生まれます。'
+    ],
+    work:[
+      '完璧主義と見栄が邪魔をしやすい日。まずは形にすることを優先して。',
+      'クリエイティブな力を発揮できる日。表現活動や企画に力を注ぎましょう。',
+      '直感とクリエイティブ力が最高潮の日。大胆なアイデアを形にするのに最適な日。'
+    ],
+    action:[
+      '衝動的な行動に注意。「3秒考えてから動く」を今日の合言葉にして。',
+      '情熱を方向付けながら着実に動く日。目標を明確にしてから行動しましょう。',
+      '直感で動くと最高の結果が出る日。迷わず、感じたことを信じて行動を。'
+    ]
+  }
+};
+
+/* 星 → 本質キーワード */
+var STAR_KEYWORDS = {
+  1:'柔軟・適応・思索',2:'堅実・献身・忍耐',3:'行動・好奇心・発想',
+  4:'社交・協調・人脈',5:'統率・中心・強烈',6:'理論・正義・判断',
+  7:'社交・楽しさ・金運',8:'信念・変革・真面目',9:'情熱・直感・美的'
+};
+
+/* ラッキーアイテム（本命星ベース） */
+var STAR_LUCKY = {
+  1:['澄んだ水を入れたグラス','ガラス製品・透明なもの','白または黒のアイテム'],
+  2:['陶器・土もの','黄土色・ブラウン系のアイテム','丁寧に作られた手作りのもの'],
+  3:['緑色のもの','木製品・観葉植物','新しい文房具・手帳'],
+  4:['生花・アロマ','風を感じるもの（スカーフ等）','緑・グリーン系アイテム'],
+  5:['黄色のもの','目立つアクセサリー','中心に置くインテリア'],
+  6:['金属製品（シルバー等）','白・シルバーのアイテム','手帳・システム手帳'],
+  7:['赤いアクセサリー','金・ゴールド系のもの','甘いスイーツ'],
+  8:['白・クリーム色のもの','石・クリスタル','山や自然を感じるもの'],
+  9:['赤・紫のもの','キャンドル・照明アイテム','美しいアート・デザイン雑貨']
+};
+
+/* ============================================================
+   BEAUTY DB（9星 × 3レベル、メイクはマヤ紋章カラーグループ × 3レベル）
+============================================================ */
+var BEAUTY_DB = {
+  hair: {
+    1:[
+      '今日は無理にセットせず、自然な流れを活かしたスタイルが◎。ゆるくおろすか、後れ毛を出したルーズなアレンジを。',
+      '水の星らしく、動きのあるゆるウェーブや柔らかなカールで軽やかさを演出。前髪は流し気味に仕上げて。',
+      '艶感ウェットヘアや絹のような滑らかなストレートが運気を高める日。アシンメトリーな動きも◎。'
+    ],
+    2:[
+      'まとめ髪やシンプルなスタイルで落ち着いた印象に。スッキリ清潔感が今日の吉。',
+      'お団子やローポニーなど安定感のあるまとめ髪がおすすめ。温かみのある茶系カラーと相性◎。',
+      '丁寧にセットしたシニョンや上品なハーフアップで、信頼感と美しさを両立させる日。'
+    ],
+    3:[
+      '今日は落ち着いたシンプルスタイルが吉。ゆるめの外ハネで動きを出す程度に留めて。',
+      '軽さと動きが魅力を引き出す日。外ハネスタイルや毛先遊びでフレッシュさをアピール。',
+      '前髪アレンジや明るいスタイルで今日の勢いを表現！エネルギッシュなポニーテールも◎。'
+    ],
+    4:[
+      '内巻きや大人しめスタイルで上品な印象に。今日は主張しすぎないほど縁を呼ぶ。',
+      'ふんわり外巻きや波ウェーブで温かみのある印象に。ヘアアクセサリーでさりげない可愛さを。',
+      '明るい雰囲気のゆるふわスタイルが縁を引き寄せる日。編み込みや三つ編みアレンジも素敵。'
+    ],
+    5:[
+      'アップスタイルで全体を締めると、強いエネルギーをうまくコントロールできる日。',
+      'ボリュームは控えめに、清潔感を大切にしたスタイルで安定感を演出。',
+      '思い切ったスタイルチェンジに最適な日。存在感を前面に出すアレンジでオーラ全開に。'
+    ],
+    6:[
+      'クセを抑えたすっきりスタイルが吉。過度なアレンジより清潔感と美しいラインを優先。',
+      'ストレートやシンプルなブローで美しいラインを強調。白やシルバーのヘアアクセも相性◎。',
+      '完璧なシルエットが今日の輝きを倍増させる日。モデルのようなすっきりアップか美しいストレートで。'
+    ],
+    7:[
+      '派手すぎるアレンジは少し控えめに。シンプルなスタイルでも自然な輝きが出る日。',
+      '艶感スタイルや緩やかな巻き髪でキュートさをアップ。ゴールド系ヘアアクセが相性◎。',
+      '七赤のゴージャスさ全開の日。華やかな巻き髪や上品なアップで最高の輝きを放って。'
+    ],
+    8:[
+      'シンプルで清潔感のあるスタイルが吉。整ったラインを意識した端正な仕上がりを。',
+      '清潔感のあるナチュラルスタイルが好印象。白系が映える端正な前髪も意識して。',
+      '大胆なイメージチェンジが今日の変革力を加速させる。思い切ったカラーチェンジや刈り上げも◎。'
+    ],
+    9:[
+      '今日は奇抜より洗練を意識して。シンプルなスタイルで内なる美しさを引き出して。',
+      '直感に従ったヘアアレンジが映える日。お気に入りのスタイルで美を楽しみましょう。',
+      '美的センスが輝く日。大人っぽいカラーや個性的なアレンジで自分を思い切り表現して。'
+    ]
+  },
+  // メイクはマヤ紋章カラーグループ（赤・白・青・黄）で決まる
+  makeup: {
+    red:[ // 龍・蛇・月・空歩く人・地球
+      '今日は控えめカラーで品良く仕上げて。ベージュ系リップやナチュラルアイでバランスを。',
+      'テラコッタやオレンジ系リップで情熱的な印象を演出。目元はブラウンシャドウで深みを出して。',
+      'レッドリップや鮮やかなカラーメイクが似合う日。目元はアイラインを強調してドラマティックに。'
+    ],
+    white:[ // 風・世界の橋渡し・犬・魔法使い・鏡
+      'よりナチュラルなメイクで清楚な印象に。アイラインを細めにするだけで上品さが増す日。',
+      '透明感のあるピンクやコーラルで清潔感を演出。ハイライトを丁寧に入れると輝きが増す。',
+      '透き通るような輝き感が今日のテーマ。パールやラメで品格ある輝きをプラスして。'
+    ],
+    blue:[ // 夜・手・猿・鷲・嵐
+      'アイシャドウは控えめに。ナチュラルブラウンで穏やかで落ち着いた印象を。',
+      'スモーキーなブルーやモーブ系をさりげなく取り入れて。知的な印象がアップする日。',
+      'ブルーやパープルのポイントメイクで個性を演出。デジタルアイラインやカラーライナーも◎。'
+    ],
+    yellow:[ // 種・星・人・戦士・太陽
+      'マットな仕上げで落ち着きを演出する日。ラメやグリッター系は今日は控えめに。',
+      '明るいゴールドやイエローシャドウを目頭や涙袋にさりげなくプラス。顔色が明るく見える日。',
+      '黄色やゴールドの輝きが今日の運気を高める日。発光感のあるハイライトで光の女神に。'
+    ]
+  },
+  scent: {
+    1:[ // 水
+      '今日は香りを控えめに。シンプルな無香料か、ほのかなアクア系で心を整えて。',
+      '清涼感のある水系フレグランスが気持ちをリセットしてくれる日。マリン系やシトラスも◎。',
+      '清澄なウォータリーフレグランスが直感を研ぎ澄ませる日。氷のように澄んだ香りが◎。'
+    ],
+    2:[ // 土
+      '強い香りは控えめに。ほのかなウッディやパチュリで地に足をつけて今日を過ごして。',
+      '大地を感じるサンダルウッドやベチバーが今日のあなたに馴染む日。落ち着きと安定感を。',
+      '深みのあるアーシーな香りが今日の魅力を際立てる日。ウードやシダーウッドで存在感を。'
+    ],
+    3:[ // 木
+      'フレッシュすぎる香りは少し控えめに。ライトフローラルやグリーンティーが◎。',
+      'グリーンや葉を感じるフレッシュな香りが今日のエネルギーを高める日。ユズやバジルも◎。',
+      '爽やかで生命力あふれるグリーン系フレグランスで今日のエネルギーを全開に。'
+    ],
+    4:[ // 木（社交）
+      '今日は香りを主張させず、ふんわり軽いものを。ライトフローラルで優しい印象を。',
+      '風のように軽やかなフローラルフレグランスが縁を引き寄せる日。桜やスズランも◎。',
+      '花が咲き誇るような豊かなフローラルが今日の社交性をさらに高める日。バラやジャスミンで。'
+    ],
+    5:[ // 土（強烈）
+      '香りが強くなりすぎないよう注意。シンプルなムスクや控えめな香りが今日の吉。',
+      '存在感のあるウードやムスクが今日の強いエネルギーとシンクロする日。',
+      '圧倒的な存在感を放つ、深くリッチな香りが今日のあなたにふさわしい日。スパイシーウードで。'
+    ],
+    6:[ // 金
+      '完璧すぎる香りより、少しだけ崩したナチュラルさを意識して。',
+      '洗練されたホワイトフローラルやシーフォーム系が知性的な印象を与える日。',
+      '気品あるホワイトフローラルや白麝香が今日の判断力をさらに高める日。クリーンで完璧な香りを。'
+    ],
+    7:[ // 金（明るい）
+      '甘すぎる香りは少し控えめに。軽めのフルーティが今日のバランスを保つ。',
+      'フルーティで楽しい気分になれる香りが今日のあなたと相性抜群の日。ピーチやベリー系で。',
+      '七赤の輝きに合わせた、華やかなフルーティフローラルを纏って。ゴージャス感を全身で。'
+    ],
+    8:[ // 土（変革）
+      '香りは最小限に。白を感じる清潔感のある香りで気持ちを整える日。',
+      '清潔感のあるコットンや白檀系が今日の誠実さを際立てる日。シンプルが美しい。',
+      '山を感じる凛としたウードやシダー系の香りが変革エネルギーを後押しする日。'
+    ],
+    9:[ // 火
+      '情熱的な香りは今日は控えめに。ライトなフローラルやオレンジフラワーで心を落ち着けて。',
+      '情熱とセンスを感じさせるローズやラズベリー系が今日のあなたに映える日。',
+      '情熱の炎を感じるスパイシーなローズやオリエンタル系フレグランスで最高の自分を表現して。'
+    ]
+  }
+};
+
+/* ============================================================
+   男性用 BEAUTY_DB
+============================================================ */
+var BEAUTY_DB_MALE = {
+  hair: {
+    1:[
+      '今日は無理なセットより、自然な流れを活かしたスタイルが◎。ワックスを少なめに、動きを出して。',
+      '水の星らしい柔らかな動きのあるスタイルに。パーマやソフトウェーブで無造作感を演出。',
+      '艶感のある動きスタイルや洗練されたセンターパートが今日の運気を高める日。'
+    ],
+    2:[
+      'シンプルなビジネスカットで清潔感を最優先に。今日はアレンジより整え感が吉。',
+      '清潔感のある刈り上げか、ナチュラルな短髪がおすすめ。ワックスで整えた端正な印象に。',
+      '丁寧にセットした整ったヘアスタイルが信頼感と誠実さを際立てる日。'
+    ],
+    3:[
+      '今日は少し落ち着いたシンプルスタイルが◎。ツーブロックでもすっきり整えて。',
+      'フレッシュなツーブロックや軽やかなショートで元気な印象を演出。',
+      '前髪を上げたアップバングや思い切ったショートが今日の勢いを体現する。'
+    ],
+    4:[
+      '整えすぎず、親しみやすいナチュラルなスタイルが好印象な日。',
+      '柔らかいウェーブやふんわりしたセットで温かみのある雰囲気を演出。',
+      '社交的な印象を高める軽やかなスタイルが縁を引き寄せる日。ヘアアクセや色味変更も◎。'
+    ],
+    5:[
+      'ボリュームを抑えたすっきりスタイルで今日のエネルギーをコントロールして。',
+      '存在感はありつつも清潔感のある整ったスタイルで安定感を演出。',
+      '思い切ったスタイルチェンジに最適な日。ワイルドなボリュームや大胆な刈り上げも◎。'
+    ],
+    6:[
+      'クセを抑えた清潔なサイドパートが吉。今日は完璧に整えることが力になる。',
+      '整ったサイドパートやクリーンカットで知性的な印象を強調。シルバーアクセも◎。',
+      '完璧に整えたスタイルが今日の判断力を視覚的にも際立たせる日。'
+    ],
+    7:[
+      '派手すぎるセットより自然な艶感スタイルが◎。今日はシンプルさで輝ける日。',
+      '艶感スタイルやトレンディなセットで魅力を高める日。ゴールド系アクセも相性◎。',
+      'ゴージャスな艶感スタイルや個性的なセットで今日の輝きを放って。'
+    ],
+    8:[
+      'シンプルで端正なスタイルが吉。余計な動きより清潔なラインを意識して。',
+      '清潔感のあるショートや端正なスタイルが誠実さを伝える日。',
+      '大胆なイメージチェンジが今日の変革エネルギーを加速させる。刈り上げや刷新も◎。'
+    ],
+    9:[
+      '今日は奇抜より洗練を。シンプルなスタイルで内なる魅力を引き出して。',
+      '直感に従ったスタイルが映える日。美的センスを活かしたアレンジを楽しもう。',
+      '個性的なカラーや大人っぽいスタイルで自分を思い切り表現できる日。'
+    ]
+  },
+  makeup: { // 男性はグルーミング
+    red:[
+      '今日は基本のスキンケアを丁寧に。乾燥ケアと日焼け止めを忘れずに。',
+      '眉を少し濃く、はっきり整えると情熱的な印象に。ヒゲはきれいにそろえて存在感を。',
+      '眉のシェイプやヒゲラインをくっきり整え、力強い印象を前面に出す日。'
+    ],
+    white:[
+      '清潔感ファーストの日。洗顔後の保湿を丁寧に、毛穴レスな印象で。',
+      '透明感スキンケアとナチュラルな眉整えで清潔な印象を高める日。',
+      'BBクリームやコンシーラーでシミ・クマをカバーし、透明感ある肌印象を作る日。'
+    ],
+    blue:[
+      '今日は肌荒れに注意。保湿とバリアケアを重点的に。',
+      '目元を引き締めるクールな眉セッティングで知的な印象をアップ。',
+      '精悍なコントラストを意識した眉整えやヒゲスタイルで、洗練された顔つきを作る日。'
+    ],
+    yellow:[
+      '今日はムダ毛処理など基本のお手入れデーに。肌を整えるだけで明るく見える。',
+      '明るい血色感を出すスキンケアが吉。ヘルシーな印象のリップバームも◎。',
+      '発光感ある肌仕上げと整った眉で、存在感ある顔印象を作る日。ヘアカラーも◎。'
+    ]
+  },
+  scent: {
+    1:[
+      '今日は控えめに。アクア系や無香料寄りのフレグランスで落ち着きを保つ日。',
+      'マリン系やシトラスウォーターの清涼感あるコロンが気持ちをリセットしてくれる日。',
+      '清澄なウォータリーフレグランスや爽快なオーシャン系が今日の直感を研ぎ澄ませる日。'
+    ],
+    2:[
+      '強い香りは控えめに。ウッディなクリームや微香のボディケアで整える日。',
+      '大地感のあるサンダルウッドやシダーが今日のどっしりした安定感とシンクロ。',
+      '深みのあるウードやベチバーが今日の誠実さと存在感を際立てる日。'
+    ],
+    3:[
+      'フレッシュすぎる香りは控えめに。ライトシトラスで清潔感を演出。',
+      'グレープフルーツやレモン系の爽快なシトラスが今日のエネルギーを引き出す日。',
+      '爽やかで生命力あふれるグリーンシトラスや柚子系で今日の行動力を全開に。'
+    ],
+    4:[
+      '今日は香りを薄めに。ライトウッドやさりげないシトラスで自然体を。',
+      '軽やかなグリーンティーやフレッシュウッドが親しみやすい印象をつくる日。',
+      '爽やかなフルーティウッドやアクアフローラルが縁を引き寄せる日。'
+    ],
+    5:[
+      '香りが強すぎないよう注意。シンプルなムスクやウッドで抑えた方が吉な日。',
+      '存在感のあるウードやスパイシーウッドが今日のエネルギーとシンクロする日。',
+      '圧倒的な存在感を放つスパイシーウードやオリエンタル系が今日にふさわしい。'
+    ],
+    6:[
+      '完璧すぎる香りより少し崩したナチュラルウッドを。',
+      '洗練されたシダーやホワイトムスクが知性的な印象を与える日。',
+      '気品あるホワイトウッドやシプレが今日の判断力をさらに高める日。'
+    ],
+    7:[
+      '甘すぎる香りは控えめに。ライトなウッドか石鹸系が今日のバランスを保つ。',
+      'フルーティウッドや華やかシトラスが今日のあなたの魅力を引き出す日。',
+      '明るく華やかなフルーティアコードやゴールドウッドで今日の輝きを纏って。'
+    ],
+    8:[
+      '香りは最小限に。石鹸系や無香に近いものでシンプルに整える日。',
+      '清潔感のあるコットンムスクや白檀が今日の誠実さを際立てる日。',
+      '山を感じる凛としたシダーやウードが変革エネルギーを後押しする日。'
+    ],
+    9:[
+      '情熱的な強い香りは今日は控えめに。ライトシトラスで心を落ち着けて。',
+      '情熱とクールさを両立するオリエンタルウッドが今日のあなたに映える日。',
+      '力強いスパイシーウードやオリエンタル系フレグランスで最高の自分を表現する日。'
+    ]
+  }
+};
+
+// マヤ紋章番号 → メイクのカラーグループ
+var MAYA_MAKEUP_GROUP = {
+  1:'red',5:'red',9:'red',13:'red',17:'red',
+  2:'white',6:'white',10:'white',14:'white',18:'white',
+  3:'blue',7:'blue',11:'blue',15:'blue',19:'blue',
+  4:'yellow',8:'yellow',12:'yellow',16:'yellow',20:'yellow'
+};
+
+// マヤ紋章カラーグループ表示名
+var MAKEUP_GROUP_LABELS = {
+  red:'赤グループ（龍・蛇・月・空歩く人・地球）',
+  white:'白グループ（風・橋渡し・犬・魔法使い・鏡）',
+  blue:'青グループ（夜・手・猿・鷲・嵐）',
+  yellow:'黄グループ（種・星・人・戦士・太陽）'
+};
+
+/* ラッキーパーソン（本命星ごとの「相生受け」の星の人格） */
+var LUCKY_PERSON = {
+  1:{ badge:'六白・七赤金星の方',
+      traits:'論理的で信頼感があり、冷静に物事を判断できる人。白やシルバーが似合う、洗練された雰囲気の方が今日のあなたのエネルギーを引き上げてくれます。' },
+  2:{ badge:'九紫火星の方',
+      traits:'情熱的で直感力が高く、センスが光る存在感のある人。明るいエネルギーで場を照らすような方と接することで、あなたの行動力が引き出されます。' },
+  3:{ badge:'一白水星の方',
+      traits:'柔軟でしなやか、思慮深く穏やかな人。適応力が高く流れを読む力に優れた方。そのゆったりとした空気があなたの衝動を落ち着かせ、本来の力を引き出してくれます。' },
+  4:{ badge:'一白水星の方',
+      traits:'聞き上手で心が静かな人。深く考え、丁寧に関わることを大切にする方。そのしなやかな存在があなたの感受性をさらに磨いてくれます。' },
+  5:{ badge:'九紫火星の方',
+      traits:'情熱的でビジョンが明確、センスと行動力を兼ね備えた人。輝くような個性と存在感がある方との関わりで、あなたの統率力がさらに大きく開花します。' },
+  6:{ badge:'二黒・八白土星の方',
+      traits:'誠実で真面目、地道に努力を続ける堅実な人。大地のような安定感と温かさを持つ方。その確かさがあなたの判断力に深みを加えてくれます。' },
+  7:{ badge:'二黒・八白土星の方',
+      traits:'忍耐強くコツコツと積み上げることができる人。縁の下の力持ちとして誠実に支えてくれる方。そのどっしりとした安定感が、あなたの輝きをさらに際立たせます。' },
+  8:{ badge:'九紫火星の方',
+      traits:'情熱と直感を持ち、変化を恐れない明るい人。クリエイティブな感性と行動力を持つ方。その輝きがあなたの変革エネルギーを後押しし、大きな転換点を共に越えてくれます。' },
+  9:{ badge:'三碧・四緑木星の方',
+      traits:'好奇心旺盛で行動力があり、フレッシュなエネルギーを持つ人。自然体で楽しいことが大好きな方。その若々しいエネルギーがあなたの情熱をさらに燃え上がらせます。' }
+};
+
+/* 今日のマヤ紋章によるボーナスアイテム */
+var MAYA_LUCKY = {
+  1:'情熱的な赤いアイテム',2:'羽のモチーフ',3:'深い青色のもの',
+  4:'種・植物モチーフ',5:'赤いアクセサリー',6:'橋や道のモチーフ',
+  7:'ハンドメイドのもの',8:'星形のアイテム',9:'水・波のモチーフ',
+  10:'ハートモチーフ',11:'遊び心のあるもの',12:'ノート・手帳',
+  13:'旅のお守り',14:'神秘的なクリスタル',15:'鷲・鳥のモチーフ',
+  16:'盾・旗のモチーフ',17:'地球・自然モチーフ',18:'鏡・クリスタル',
+  19:'稲妻・嵐モチーフ',20:'太陽・黄色いもの'
+};
+
+/* デイリーアドバイス */
+var DAILY_ADVICE = {
+  1:{
+    low:'今日は無理をせず、静かに自分の内側を整える日。情報を集めながら、次の動きをじっくり準備しましょう。',
+    mid:'水が静かに流れるように、今日は焦らず丁寧に。人との縁を大切にすることで、新しい道が開けます。',
+    high:'あなたの柔軟な直感が最大限に輝くとき。新しい縁やアイデアを積極的につかみにいきましょう。'
+  },
+  2:{
+    low:'今日は自分を労わる日。周囲への奉仕も大切ですが、まず自分のエネルギーを補充して。',
+    mid:'コツコツと積み上げてきたことを丁寧に続ける日。小さな行動が大きな実りへとつながります。',
+    high:'大地のように安定した力が発揮されるとき。積み上げてきた信頼と実績が報われる一日です。'
+  },
+  3:{
+    low:'衝動的な判断は後悔のもと。今日は「なぜ？」と自問してから動く習慣をつけてみて。',
+    mid:'好奇心旺盛なあなたらしく、でも少し落ち着いて行動を。面白いことに出会えそうな予感。',
+    high:'フレッシュなエネルギーで何でも新しく始められる日。直感を信じて積極的に動きましょう。'
+  },
+  4:{
+    low:'八方美人になりやすい日。今日は「一番大切な人・こと」を一つ選んで集中しましょう。',
+    mid:'人との縁を丁寧に育む日。笑顔と誠実さが最大の武器です。',
+    high:'あなたの社交性と温かさが人を引き寄せる日。新しい縁と古い縁、両方を大切に。'
+  },
+  5:{
+    low:'強すぎるエネルギーが摩擦を生みやすい日。今日は周囲との調和を最優先に。',
+    mid:'大きな力を持つあなたへ。方向性を定めて、エネルギーを一点に集中させましょう。',
+    high:'最強のエネルギーが全開の日。大きな目標に向けて、思い切り踏み出すとき。'
+  },
+  6:{
+    low:'完璧主義が行動を妨げている日。「80点で十分」と意識して、まず動いてみましょう。',
+    mid:'論理的な思考と計画性を活かして、着実に前進する日です。',
+    high:'知性と判断力が輝くとき。重要な決断や計画立案に最適な一日。自信を持って動きましょう。'
+  },
+  7:{
+    low:'感情の波に乗りすぎないように。今日は楽しみながらも、大切なことを見失わないで。',
+    mid:'楽しさを原動力に、しっかりと目標を持って進む日。明るい雰囲気が周囲を引きつけます。',
+    high:'七赤の輝きが全開の日。楽しいことに素直に飛び込むと、思わぬ幸運が訪れるかも。'
+  },
+  8:{
+    low:'頑固さが出やすい日。今日は「もしかしたら相手が正しいかも」という視点を持ってみて。',
+    mid:'真面目で誠実な姿勢が信頼を積み重ねる日。小さな約束も大切に守りましょう。',
+    high:'変革のエネルギーが最高潮のとき。新しいことへの一歩を踏み出すのに最適な日。'
+  },
+  9:{
+    low:'情熱が空回りしやすい日。まず深呼吸して、感情を整えてから動きましょう。',
+    mid:'直感とセンスを活かしながら、冷静さも保つ日。バランスが今日のキーワードです。',
+    high:'情熱と直感が完璧に噛み合う日。感じたことを信じて、思い切り行動しましょう。'
+  }
+};
+
+/* ============================================================
+   タロット全78枚
+   {n:名前, s:スート, i:アイコン,
+    u:[正位置キーワード, 正位置アドバイス],
+    r:[逆位置キーワード, 逆位置アドバイス]}
+============================================================ */
+var TAROT_CARDS=[
+// ---- 大アルカナ (0-21) ----
+{n:'愚者',s:'大アルカナ',i:'🤸',u:['自由・新しい始まり・無限の可能性','恐れを捨て、新しい一歩を踏み出して。今日は可能性の扉が開いている。'],r:['無謀・準備不足・方向性の欠如','勢いだけで動くと後悔するかも。計画と準備をしっかり整えてから動いて。']},
+{n:'魔術師',s:'大アルカナ',i:'✨',u:['意志力・スキルの発揮・創造力','今日はあなたの中にすべてが揃っている。迷わず行動に移して。'],r:['自信喪失・力の誤用・チャンスの見逃し','才能を過小評価しないで。内側のポテンシャルを信じることから始めよう。']},
+{n:'女教皇',s:'大アルカナ',i:'🌙',u:['直感・内なる知恵・神秘','今日は論理より直感を優先して。心の奥の声があなたを正しい方向に導く。'],r:['秘密・本音の抑制・表面的判断','本当の気持ちを隠しすぎていない？今日は正直に自分と向き合う日。']},
+{n:'女帝',s:'大アルカナ',i:'🌺',u:['豊かさ・愛・創造性・美','今日は豊かさを享受する日。美しいもの、素敵な縁を大切に受け取って。'],r:['依存・創造性のブロック・過保護','誰かに頼りすぎていない？今日は自分の力で動く意識を持って。']},
+{n:'皇帝',s:'大アルカナ',i:'👑',u:['権威・安定・リーダーシップ・構造','今日は責任を持ってリードする日。計画を立て、着実に実行していこう。'],r:['独裁・柔軟性の欠如・コントロール欲','支配しようとせず、周囲と協力する姿勢が今日の鍵。']},
+{n:'法王',s:'大アルカナ',i:'🏛️',u:['伝統・教え・精神的指導','信頼できる人の言葉に耳を傾けて。先人の知恵が今日の道を照らす。'],r:['慣習への反発・型破り・独自の価値観','既存のルールに縛られなくていい。今日は自分なりの道を探してみて。']},
+{n:'恋人',s:'大アルカナ',i:'💕',u:['愛・選択・調和・信頼関係','大切な人との関係に誠実に向き合う日。心からの選択が未来を開く。'],r:['不一致・優柔不断・価値観の衝突','決断を避けていない？今日は心の声に従って選択を。']},
+{n:'戦車',s:'大アルカナ',i:'🏇',u:['勝利・意志・前進・自制心','今日は前進あるのみ。迷いを振り切り、目標に向かって突き進んで。'],r:['攻撃性・方向性の喪失・自制の欠如','力任せより方向性の確認が先。エネルギーを正しい方向に向けよう。']},
+{n:'力',s:'大アルカナ',i:'🦁',u:['内なる強さ・勇気・忍耐・慈悲','今日は力ずくでなく、優しさと忍耐で乗り越える日。内側の強さを信じて。'],r:['自己不信・弱さ・感情のコントロール不足','無理に強がらなくていい。弱さを認めることが本当の強さへの第一歩。']},
+{n:'隠者',s:'大アルカナ',i:'🕯️',u:['内省・孤独・知恵の探求・指針','今日は一人になる時間を作って。内側に向き合うことで重要な答えが見えてくる。'],r:['孤立・内省の行き過ぎ・引きこもり','一人で抱え込みすぎていない？今日は信頼できる人に話してみて。']},
+{n:'運命の輪',s:'大アルカナ',i:'⚙️',u:['変化・チャンス・運命の転換点','今日は流れが変わる日。チャンスに敏感になって、変化を恐れずに受け入れて。'],r:['不運・流れへの抵抗・停滞','今は停滞感があるかも。でも輪は必ず回る。今は準備の時と捉えて。']},
+{n:'正義',s:'大アルカナ',i:'⚖️',u:['公平・真実・法・バランス','今日は公正に物事を判断する日。感情に流されず、真実を見極めよう。'],r:['不公平・偏見・責任回避','自分に都合よく考えていない？今日は客観的な視点を意識して。']},
+{n:'吊られた男',s:'大アルカナ',i:'🔮',u:['視点の転換・停止・自己犠牲・悟り','今日は別の角度から見てみる日。視点を変えることで突破口が見えてくる。'],r:['無駄な犠牲・時間の浪費・変化への抵抗','犠牲を払い続けることに意味はある？今日は方向性を見直す勇気を。']},
+{n:'死神',s:'大アルカナ',i:'🦋',u:['終わりと始まり・変容・手放す・再生','終わりを恐れないで。今日は古いものを手放すことで、新しい扉が開く。'],r:['変化への抵抗・停滞・しがみつき','もう手放すべき何かを握りしめていない？勇気ある別れが未来を開く。']},
+{n:'節制',s:'大アルカナ',i:'🌊',u:['バランス・調和・忍耐・適度','今日は極端を避け、バランスを保つ日。少しずつ、丁寧に進むことが吉。'],r:['不均衡・過剰・焦り','どこかで過剰になっていない？今日は一度立ち止まって、バランスを整えて。']},
+{n:'悪魔',s:'大アルカナ',i:'🔗',u:['束縛・物質主義・誘惑・影の自分','何かに縛られている感覚はある？今日はその鎖の正体を直視してみて。'],r:['解放・自由・束縛からの脱出','今日は縛りから解放されるチャンス。「もうやめていい」と自分に言ってあげて。']},
+{n:'塔',s:'大アルカナ',i:'⚡',u:['崩壊・突然の変化・啓示・再構築','想定外の変化が起こるかも。でもそれは再生のための力。受け入れて進んで。'],r:['崩壊の回避・変化の遅延','大きな変化が迫っている。今のうちに心の準備をしておくと乗り越えやすい。']},
+{n:'星',s:'大アルカナ',i:'🌟',u:['希望・癒し・インスピレーション','今日は未来に希望を持っていい日。あなたの夢や願いは現実に近づいている。'],r:['絶望・希望の喪失・自己不信','今は暗く見えても、星は必ず輝く。今日は小さな光を探してみて。']},
+{n:'月',s:'大アルカナ',i:'🌕',u:['幻想・不安・潜在意識・直感','今日は見えないものに敏感な日。不安を直視しながら、直感を信じて進んで。'],r:['幻想の解消・真実の発見・恐れの克服','霧が晴れ始めている。今日は曖昧だったことがクリアになる瞬間があるかも。']},
+{n:'太陽',s:'大アルカナ',i:'☀️',u:['喜び・成功・活力・明るさ','今日は最高に輝ける日。自信を持って前に出よう。あなたの明るさが周囲を照らす。'],r:['自己中心・過信・エネルギーの低下','少し力が入りすぎていない？今日は肩の力を抜いて、素直に楽しんでみて。']},
+{n:'審判',s:'大アルカナ',i:'🎺',u:['復活・再生・覚醒・新しい章','今日は生まれ変わりのタイミング。過去を清算して、新しい自分に目覚める日。'],r:['自己批判・過去への固執・変化への抵抗','過去の失敗を手放して。今日は自分を許すことから新しい章が始まる。']},
+{n:'世界',s:'大アルカナ',i:'🌍',u:['完成・達成・統合・祝福','今日は一つの完成を迎える日。これまでの努力が実り、新しい旅の始まりでもある。'],r:['未完成・ゴールの遅延・閉塞感','ゴールはすぐそこ。焦らず最後の一歩を丁寧に踏み出して。']},
+// ---- ワンド ----
+{n:'ワンドのエース',s:'ワンド',i:'🌱',u:['情熱の点火・新事業・創造力の始まり','新しいことを始める最高のエネルギーが満ちる日。直感で動いて。'],r:['スタートの遅れ・やる気の低下','火花を感じているのに動けていない？今日は小さな一歩でいいから動いて。']},
+{n:'ワンドの2',s:'ワンド',i:'🔭',u:['計画・ビジョン・未来への期待','今日は遠い未来を見据える日。大きなビジョンを描き、次の一手を計画して。'],r:['恐れ・決断の先延ばし・視野の狭さ','大きな可能性が目の前にある。恐れずに一歩踏み出す勇気を持って。']},
+{n:'ワンドの3',s:'ワンド',i:'⛵',u:['拡大・前進・遠方からの援助','準備が整い、今日は実行に移す日。遠くから来る良い流れに期待して。'],r:['遅延・障害・孤独','周囲の協力を借りて。一人で全部背負わなくていい日。']},
+{n:'ワンドの4',s:'ワンド',i:'🎉',u:['お祝い・調和・安定・帰還','今日は喜びを分かち合う日。大切な人との時間が特別な意味を持つ。'],r:['不安定・先延ばし・帰属意識の欠如','本当に大切なものを見失っていない？今日は基盤を確認しよう。']},
+{n:'ワンドの5',s:'ワンド',i:'⚔️',u:['競争・葛藤・チャレンジ','今日はバトル感のある日かも。でもそれはあなたを成長させる刺激。前向きに挑んで。'],r:['対立の回避・内部葛藤・停戦','今日は競争を避け、自分自身の整理に集中して。']},
+{n:'ワンドの6',s:'ワンド',i:'🏆',u:['勝利・認められること・リーダーシップ','今日は評価される日。自信を持って前に出よう。あなたの努力が認められる。'],r:['高慢・失敗・信念の欠如','周囲への感謝を忘れずに。あなたの成功はみんなの力が支えている。']},
+{n:'ワンドの7',s:'ワンド',i:'🛡️',u:['防御・立場の維持・勇気','今日は自分の立場を守る日。信念を持って、外からの圧力に揺るがないで。'],r:['圧倒される感覚・諦め・自己懐疑','戦いに疲れていない？今日は無理に張り合わず、状況を客観的に見直して。']},
+{n:'ワンドの8',s:'ワンド',i:'🚀',u:['スピード・行動・素早い展開','今日は素早く動く日。チャンスは一瞬のこともある。スピーディーに動いて。'],r:['遅延・焦り・方向性の欠如','急ぎすぎて大事なことを見落としていない？スピードより正確さを意識して。']},
+{n:'ワンドの9',s:'ワンド',i:'💪',u:['回復力・継続力・最後の粘り','もう少しで到達できる。今日は疲れても踏ん張る日。あと一歩を信じて。'],r:['燃え尽き・防衛的・諦め','頑張りすぎて限界が来ていない？今日は休む勇気も大切。']},
+{n:'ワンドの10',s:'ワンド',i:'📦',u:['重荷・過負荷・最後の努力','今日は重い荷物を背負っている感覚があるかも。委任できることは任せて。'],r:['重荷を下ろす・委任・解放','もう一人で全部背負わなくていい。今日は手放すことで自由になれる。']},
+{n:'ワンドのペイジ',s:'ワンド',i:'🌿',u:['探求・新しいアイデア・情報','今日はフレッシュな視点で物事を見て。新しいアイデアや情報が鍵になる。'],r:['目的の欠如・悪いニュース・先走り','計画なしに動くと空回りしやすい日。まず目的を明確にして。']},
+{n:'ワンドのナイト',s:'ワンド',i:'🐎',u:['行動力・冒険・情熱・大胆さ','今日は大胆に動く日。情熱のままに行動すると道が開ける。'],r:['無謀・衝動・散漫','勢いだけで動くと後悔するかも。今日は少し立ち止まって方向性を確認して。']},
+{n:'ワンドのクイーン',s:'ワンド',i:'🌸',u:['カリスマ・自信・明るさ・肯定','今日はあなたの魅力が最大限に輝く日。自信を持って前に出て。'],r:['嫉妬・支配的・意地悪','競争心より協調心を。人の成功を素直に喜べると良いエネルギーが戻ってくる。']},
+{n:'ワンドのキング',s:'ワンド',i:'🔥',u:['ビジョン・リーダーシップ・起業家精神','今日は堂々とリードする日。あなたのビジョンを語り、人を動かして。'],r:['横暴・衝動的判断・支配欲','力任せにならないよう注意。今日は聞くことを意識して。']},
+// ---- カップ ----
+{n:'カップのエース',s:'カップ',i:'💧',u:['愛の始まり・感情の豊かさ・直感の開花','感情が豊かに溢れ出す日。素直な気持ちを大切に、愛と喜びを受け取って。'],r:['感情の抑圧・空虚感・愛の拒絶','心を閉ざしていない？今日は愛を受け取ることを自分に許してあげて。']},
+{n:'カップの2',s:'カップ',i:'💑',u:['パートナーシップ・相互理解・絆','今日は大切な人との絆を深める日。素直な気持ちを伝えると関係が深まる。'],r:['不均衡・誤解・別れ','関係に違和感を感じているなら、今日は対話の機会を作って。']},
+{n:'カップの3',s:'カップ',i:'🥂',u:['お祝い・友情・コミュニティ・喜び','今日は仲間と喜びを分かち合う日。大切な人を誘ってみて。'],r:['浮かれすぎ・孤立・過剰な享楽','楽しむのはいいけど、誰かが取り残されていない？バランスを意識して。']},
+{n:'カップの4',s:'カップ',i:'😔',u:['無気力・不満・内省・見逃し','今の状況に不満を感じているかも。でも目の前に差し出されているものを見逃していない？'],r:['動き出す・新しい機会・無気力からの脱出','今日は停滞から動き出せる日。一歩踏み出すと新しい流れが生まれる。']},
+{n:'カップの5',s:'カップ',i:'💔',u:['喪失・後悔・悲嘆','失ったものより、まだ手元に残っているものを見て。今日は感謝から始めて。'],r:['回復・許し・前進','今日は悲しみから一歩踏み出せる日。過去に感謝して、前を向こう。']},
+{n:'カップの6',s:'カップ',i:'🌸',u:['ノスタルジア・純粋さ・再会','懐かしい人や思い出が今日の気持ちを温めてくれる。素直な心で過去を振り返って。'],r:['過去への執着・現実逃避','今日は過去より今と未来に目を向けて。記憶は大切に、でも前に進もう。']},
+{n:'カップの7',s:'カップ',i:'🌈',u:['夢想・選択肢の多さ・幻想・迷い','たくさんの可能性に目移りしている日。でも最終的に選べるのは一つ。心に正直に。'],r:['決断・幻想の解消・現実的な選択','今日は夢から覚めて現実を見る日。明確な選択をすることで道が開ける。']},
+{n:'カップの8',s:'カップ',i:'🚶',u:['手放す・追求・より高いものへ','今日は安定を手放し、より大切なものを追う日。勇気ある撤退が成長につながる。'],r:['漂流・逃避・ドリフト','逃げることが目的になっていない？今日は行き先を明確にしてから動いて。']},
+{n:'カップの9',s:'カップ',i:'🌟',u:['願望の成就・満足・幸福感','今日は願いが叶いやすい日。自分の幸福を素直に受け取っていいタイミング。'],r:['不満・貪欲・価値の見誤り','今ある幸せに気づいていない？今日は持っているものへの感謝から始めて。']},
+{n:'カップの10',s:'カップ',i:'🌈',u:['完全な幸福・家族の調和・夢の実現','今日は心の平和と幸福が最高潮に。大切な人と共に喜びを分かち合う日。'],r:['不和・現実逃避・完璧な幸せへの執着','理想にとらわれすぎていない？今ある幸せの形を素直に受け入れて。']},
+{n:'カップのペイジ',s:'カップ',i:'🐬',u:['感受性・直感的メッセージ・創造性','今日は感情のアンテナを張って。心から来るメッセージを素直に受け取って。'],r:['感情の未熟さ・空想・嫉妬心','感情に振り回されやすい日。冷静に観察する目を持つことが大切。']},
+{n:'カップのナイト',s:'カップ',i:'🌊',u:['ロマンス・感情的提案・理想主義','今日は感情を行動で表す日。思いを伝えることが縁を深める。'],r:['夢想家・優柔不断・感情の操作','理想と現実のギャップに気をつけて。感情より行動で示す日。']},
+{n:'カップのクイーン',s:'カップ',i:'💎',u:['共感・直感・感情的な成熟・癒し','今日は周囲の心に寄り添う日。あなたの温かさが誰かを救うかもしれない。'],r:['感情的依存・操作・境界線の欠如','他人の感情を受け取りすぎていない？今日は自分の感情を最優先に守って。']},
+{n:'カップのキング',s:'カップ',i:'🏝️',u:['感情の成熟・共感・バランス・知恵','今日は感情と理性を高いレベルでバランスさせる日。穏やかな判断力が力になる。'],r:['感情的操作・不安定・冷淡','感情を隠しすぎていない？正直に、でも成熟した形で気持ちを表現して。']},
+// ---- ソード ----
+{n:'ソードのエース',s:'ソード',i:'⚡',u:['明晰さ・真実・ブレイクスルー','今日は頭が冴え渡る日。複雑な問題もクリアに見えてくる。真実を見極めて。'],r:['混乱・誤解・コミュニケーションの失敗','言葉に気をつけて。誤解が生じやすいので、丁寧なコミュニケーションを。']},
+{n:'ソードの2',s:'ソード',i:'🙈',u:['行き詰まり・決断の回避・バランス','難しい選択を迫られているかも。今日は目をつぶらず、直視する勇気を持って。'],r:['情報過多・優柔不断・選択の困難','情報が多すぎて混乱している？今日は一番大切なことだけに集中して。']},
+{n:'ソードの3',s:'ソード',i:'🌧️',u:['悲しみ・喪失・裏切り・痛み','今日は傷つく出来事があるかも。でも痛みを感じることは生きている証。大切に向き合って。'],r:['癒し・許し・傷からの回復','今日は心の傷が癒え始める日。自分を許し、前に向かう一歩を踏み出して。']},
+{n:'ソードの4',s:'ソード',i:'🛌',u:['休息・回復・内省・準備','今日は意識的に休む日。戦いから離れ、静かに力を蓄えることが最善。'],r:['動き出す・休息の終わり・焦り','休みすぎになっていない？今日は少しずつ動き始めるタイミング。']},
+{n:'ソードの5',s:'ソード',i:'😤',u:['勝利の代償・不名誉・争い','今日の勝ちに意味はある？争いより協力の道を模索してみて。'],r:['和解・過去との決別・恨みの解放','今日は争いから離れ、和解の道を選ぶ日。恨みを手放すと心が軽くなる。']},
+{n:'ソードの6',s:'ソード',i:'⛵',u:['移行・旅立ち・困難からの脱出','今日は困難な場所から離れる時。新しい場所へ向かう勇気を持って。'],r:['旅立ちの遅れ・過去への執着','まだ古い場所に留まろうとしていない？今日は思い切って旅立つ準備を。']},
+{n:'ソードの7',s:'ソード',i:'🕵️',u:['策略・慎重な行動・単独行動','今日は戦略的に動く日。すべてを明かさず、賢く行動することが吉。'],r:['正直さの回復・計画の失敗','隠し事が重荷になっていない？今日は正直に話すことで楽になれる。']},
+{n:'ソードの8',s:'ソード',i:'🔒',u:['制限・束縛・自己制限','本当に逃げられない状況？今日は自分が自分を縛っていることに気づいてみて。'],r:['解放・自己救済・思い込みからの脱出','今日は自分を縛っていた思い込みから解放される日。新しい見方を試して。']},
+{n:'ソードの9',s:'ソード',i:'😰',u:['不安・悪夢・心配・自己批判','頭の中で最悪のシナリオを繰り返していない？今日は一つずつ現実を確認して。'],r:['不安の解消・回復・光明','今日は暗いトンネルの出口が見えてくる日。心配事の実態は思ったより小さいかも。']},
+{n:'ソードの10',s:'ソード',i:'🌅',u:['終わり・最低点・裏切り・再出発','一つの終わりかもしれない。でも夜明け前が最も暗い。必ず朝は来る。'],r:['復活・回復・最悪期の脱出','ようやく最悪期を乗り越えた日。今日から上向きのエネルギーが戻ってくる。']},
+{n:'ソードのペイジ',s:'ソード',i:'🔍',u:['好奇心・情報収集・新しいアイデア','今日は情報のアンテナを張って。気になることを徹底的に調べると面白い発見が。'],r:['噂話・不誠実・策略','言葉に気をつける日。不確かな情報や噂には乗らないように。']},
+{n:'ソードのナイト',s:'ソード',i:'🗡️',u:['スピード・直接的な行動・野心','今日はためらわず直進する日。論理的に考えてから素早く行動して。'],r:['横暴・無謀・話を聞かない','スピードより対話を意識して。一人で突き進むより、周囲と話し合って。']},
+{n:'ソードのクイーン',s:'ソード',i:'🌬️',u:['独立心・直接的なコミュニケーション・知性','今日は率直に、でも温かく伝える日。知性と共感のバランスが力になる。'],r:['冷淡・辛辣な言葉・意地悪','今日は言葉が刃にならないよう注意。思ったことを全部言わなくていい日。']},
+{n:'ソードのキング',s:'ソード',i:'🏔️',u:['権威・論理的判断・倫理・知性のリーダー','今日は論理と公正さでリードする日。感情に流されず、冷静に判断して。'],r:['冷酷・横暴・知性の悪用','知識や権力を支配のために使っていない？今日は人のために使う意識を。']},
+// ---- ペンタクル ----
+{n:'ペンタクルのエース',s:'ペンタクル',i:'🌿',u:['物質的な始まり・機会・豊かさの種','今日は新しい物質的チャンスの始まり。お金・仕事・身体に関する新しい扉が開く。'],r:['機会の見逃し・物質主義・計画の失敗','目の前のチャンスを見逃していない？今日は地に足をつけて確実に動いて。']},
+{n:'ペンタクルの2',s:'ペンタクル',i:'⚖️',u:['バランス・適応力・ジャグリング','今日は複数のことを上手くこなす日。柔軟に優先順位を調整して。'],r:['アンバランス・混乱・過負荷','一度に抱えすぎていない？今日は優先順位を絞って確実にこなして。']},
+{n:'ペンタクルの3',s:'ペンタクル',i:'🏗️',u:['チームワーク・スキルの認定・協力','今日は仲間と協力して成果を出す日。あなたのスキルが正しく評価される。'],r:['非協力・質の低下・孤立','一人でやろうとしていない？今日は協力を求めることで成果が上がる。']},
+{n:'ペンタクルの4',s:'ペンタクル',i:'🏦',u:['安定・保護・節約・コントロール','今日は守ることに意識を向けて。無駄遣いを避け、安定を築く日。'],r:['吝嗇・手放せない・物質への執着','お金や物への執着が邪魔をしていない？今日は手放すことで流れが生まれる。']},
+{n:'ペンタクルの5',s:'ペンタクル',i:'🌧️',u:['貧困意識・孤立・困難','今は苦しいかもしれないが、助けは近くにある。求めることを恥ずかしがらないで。'],r:['回復・援助の受け取り・精神的豊かさ','今日は状況が好転し始める日。物質より心の豊かさに目を向けて。']},
+{n:'ペンタクルの6',s:'ペンタクル',i:'🤝',u:['寛大さ・共有・豊かさの循環','今日は受け取るだけでなく、与えることも意識して。循環が豊かさを呼ぶ。'],r:['一方的な与え・不公平な交換・依存','今日は対等なやり取りを意識して。一方的な関係は長続きしない。']},
+{n:'ペンタクルの7',s:'ペンタクル',i:'🌱',u:['評価・待機・長期的投資・忍耐','今日は結果を急がない日。蒔いた種がゆっくり育っている過程を信じて。'],r:['苛立ち・結果の見えない努力','今の努力は実を結ぶ方向に向いている？今日は方向性を見直して。']},
+{n:'ペンタクルの8',s:'ペンタクル',i:'🔨',u:['職人技・スキルアップ・勤勉・集中','今日は一つのことに集中してスキルを磨く日。地道な積み重ねが最大の武器。'],r:['完璧主義・単調な仕事・技術の誤用','頑張りすぎて視野が狭くなっていない？今日は全体像も意識しながら進めて。']},
+{n:'ペンタクルの9',s:'ペンタクル',i:'🌸',u:['豊かさ・自立・達成・余裕','今日は自分で築いた豊かさを楽しむ日。自立した強さと品格があなたの魅力。'],r:['物質依存・見栄・自立できない状態','本当の豊かさとは何か？今日は内側の充実も大切に。']},
+{n:'ペンタクルの10',s:'ペンタクル',i:'🏡',u:['財産・家族の豊かさ・完全な達成','今日は長い目で見た豊かさを考える日。家族や大切な人との絆が最大の財産。'],r:['財政問題・家族の不和・物質への偏り','お金や財産をめぐる問題に注意する日。物より人間関係を大切に。']},
+{n:'ペンタクルのペイジ',s:'ペンタクル',i:'📚',u:['学習・向上心・現実的な目標','今日は新しいスキルや知識を学ぶ日。地道な努力が大きな実りにつながる。'],r:['怠惰・現実逃避・財政的な無頓着','現実的なことから逃げないで。小さなことでも丁寧に取り組んで。']},
+{n:'ペンタクルのナイト',s:'ペンタクル',i:'🐂',u:['勤勉・信頼性・着実な前進','今日は地道に着実に進む日。派手さより確実さ。コツコツが最強の武器。'],r:['停滞・怠惰・完璧主義','ルーティンに飽きていない？今日は少し新しい方法を試してみて。']},
+{n:'ペンタクルのクイーン',s:'ペンタクル',i:'🌿',u:['実践的な豊かさ・ケア・家庭的な温かさ','今日は身近な豊かさに目を向ける日。手に届くところにある幸せを大切に。'],r:['自己没頭・物質的不安・ケアの疲れ','周囲のケアに疲れていない？今日はまず自分をケアする日。']},
+{n:'ペンタクルのキング',s:'ペンタクル',i:'🏔️',u:['成功・豊かさ・信頼性・財政的安定','今日は実績と信頼が力になる日。地に足のついた判断で大きな成果を。'],r:['強欲・物質主義・停滞','お金や地位にこだわりすぎていない？今日は本当に価値あるものに投資して。']}
+];
+
+var SUIT_COLORS={大アルカナ:'#a78bfa',ワンド:'#f97316',カップ:'#60a5fa',ソード:'#94a3b8',ペンタクル:'#34d399'};
+var SUIT_ELEM={ワンド:'火',カップ:'水',ソード:'金',ペンタクル:'土'};
+
+// 日付ベースのシード（同じ人・同じ日は同じカード）
+function tarotSeed(y,m,d){
+  var t=new Date(), ty=t.getFullYear(), tm=t.getMonth()+1, td=t.getDate();
+  var s=(y*373+m*31+d)*1000+(ty*173+tm*37+td*13);
+  s=s^(s>>>16); s=Math.imul(s,0x45d9f3b); s=s^(s>>>16);
+  return Math.abs(s);
+}
+
+function getTodayTarot(y,m,d){
+  var seed=tarotSeed(y,m,d);
+  var idx=seed%78;
+  var rev=(seed%100)<45; // 45%逆位置
+  return {card:TAROT_CARDS[idx], cardIdx:idx, rev:rev};
+}
+
+/* ライダー=ウェイト版タロット画像URL（ローカル保存済み）*/
+function getTarotImageUrl(cardIdx) {
+  var base = 'tarot-img/';
+  if (cardIdx < 22) {
+    var n = cardIdx < 10 ? '0'+cardIdx : ''+cardIdx;
+    return base + 'ar' + n + '.jpg';
+  }
+  var suits = ['wa','cu','sw','pe'];
+  var si = Math.floor((cardIdx - 22) / 14);
+  var cn = (cardIdx - 22) % 14 + 1;
+  var n = cn < 10 ? '0'+cn : ''+cn;
+  return base + suits[si] + n + '.jpg';
+}
+
+function getTarotResonance(card,effStar,score){
+  var myE=GOGYO[effStar], se=SUIT_ELEM[card.s];
+  if(card.s==='大アルカナ'){
+    if(score>=4) return '今日の強い宇宙エネルギーが大アルカナを呼び寄せています。宇宙からの重要なメッセージです。';
+    return '大アルカナは人生の大きな流れを示すカード。今日の運勢と深くつながっています。';
+  }
+  if(se===myE) return 'あなたの星の五行「'+myE+'」と'+card.s+'のエネルギーが共鳴しています。';
+  if(GENERATES[se]===myE) return card.s+'のエネルギーが今日のあなたをサポートしています。';
+  if(GENERATES[myE]===se) return 'あなたのエネルギーが'+card.s+'の流れに良い影響を与えています。';
+  return '今日の星とカードが織り成すユニークなメッセージ。じっくり深く読み取ってみて。';
+}
+
+/* ============================================================
+   スコア → レベル（1-3）と表示用データ
+============================================================ */
+var LEVEL_LABELS = ['', '注意', '小吉', '中吉', '吉', '大吉'];
+var LEVEL_COLORS = ['', '#6060a0', '#60a0c0', '#60c0a0', '#a0c060', '#f59e0b'];
+
+function scoreToLevel(score) {
+  if (score <= 2) return 1;
+  if (score === 3) return 2;
+  return 3;
+}
+
+function starsHTML(score, color) {
+  var filled = Math.round(score);
+  var s = '';
+  for (var i=1;i<=5;i++) s += i<=filled ? '★' : '☆';
+  return '<span style="color:'+color+'">'+s+'</span>';
+}
+
+/* ============================================================
+   UI 初期化
+============================================================ */
+var inpYear  = document.getElementById('inp-year');
+var inpMonth = document.getElementById('inp-month');
+var inpDay   = document.getElementById('inp-day');
+var ageBadge = document.getElementById('age-badge');
+var genderVal = 'female'; // デフォルト: 女性
+
+// 性別トグル
+document.getElementById('btn-female').addEventListener('click', function() {
+  genderVal = 'female';
+  document.getElementById('btn-female').classList.add('active');
+  document.getElementById('btn-male').classList.remove('active');
+});
+document.getElementById('btn-male').addEventListener('click', function() {
+  genderVal = 'male';
+  document.getElementById('btn-male').classList.add('active');
+  document.getElementById('btn-female').classList.remove('active');
+});
+
+// テーマクラス（運勢スコアに応じてbodyのclassを変える）
+var THEME_CLASSES = ['','theme-red','theme-slate','theme-blue','theme-green','theme-gold'];
+function applyTheme(score) {
+  var classes = ['theme-red','theme-slate','theme-blue','theme-green','theme-gold'];
+  classes.forEach(function(c){ document.body.classList.remove(c); });
+  var theme = THEME_CLASSES[Math.max(1,Math.min(5,score))];
+  if (theme) document.body.classList.add(theme);
+}
+
+// 今日の日付表示
+(function() {
+  var t = new Date();
+  var w = ['日','月','火','水','木','金','土'];
+  var s = t.getFullYear()+'年'+(t.getMonth()+1)+'月'+t.getDate()+'日（'+w[t.getDay()]+'）';
+  document.getElementById('today-date').textContent = s;
+})();
+
+function validateInputs() {
+  var y=parseInt(inpYear.value), m=parseInt(inpMonth.value), d=parseInt(inpDay.value);
+  inpYear.classList.toggle('invalid',  !inpYear.value  || y<1920||y>2025);
+  inpMonth.classList.toggle('invalid', !inpMonth.value || m<1||m>12);
+  inpDay.classList.toggle('invalid',   !inpDay.value   || d<1||d>31);
+}
+
+function updateAge() {
+  var y=parseInt(inpYear.value), m=parseInt(inpMonth.value), d=parseInt(inpDay.value);
+  if (y>=1920&&y<=2025&&m>=1&&m<=12&&d>=1&&d<=31) {
+    var age = calculateAge(y,m,d);
+    if (age>=0&&age<=120) {
+      ageBadge.textContent = '現在 '+age+' 歳';
+      ageBadge.style.display = 'block';
+      return;
+    }
+  }
+  ageBadge.style.display = 'none';
+}
+
+inpYear.addEventListener('input',  function(){
+  if (this.value.length > 4) this.value = this.value.slice(0, 4);
+  validateInputs(); updateAge();
+});
+inpMonth.addEventListener('input', function(){ validateInputs(); updateAge(); });
+inpDay.addEventListener('input',   function(){ validateInputs(); updateAge(); });
+
+[inpYear,inpMonth,inpDay].forEach(function(el){
+  el.addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('btn-fortune').click(); });
+});
+
+/* ============================================================
+   診断実行
+============================================================ */
+document.getElementById('btn-fortune').addEventListener('click', function() {
+  var year  = parseInt(inpYear.value);
+  var month = parseInt(inpMonth.value);
+  var day   = parseInt(inpDay.value);
+  if (!year||!month||!day||year<1920||year>2025||month<1||month>12||day<1||day>31) {
+    validateInputs(); return;
+  }
+
+  var today   = new Date();
+  var eff     = getEffectiveStar(year, month, day);
+  var maya    = getKin(year, month, day);
+  var todayKin= getKin(today.getFullYear(), today.getMonth()+1, today.getDate());
+  var dailyStar = getDailyKyusei(today);
+  var db      = FORTUNE_DB[eff.star];
+
+  var overallScore = getBaseScore(eff.star, dailyStar);
+  var moneyScore   = categoryScore(eff.star, dailyStar, 'money');
+  var loveScore    = categoryScore(eff.star, dailyStar, 'love');
+  var workScore    = categoryScore(eff.star, dailyStar, 'work');
+  var actionScore  = categoryScore(eff.star, dailyStar, 'action');
+
+  renderFortune({
+    eff, maya, todayKin, dailyStar,
+    overallScore, moneyScore, loveScore, workScore, actionScore, db,
+    gender: genderVal
+  });
+
+  var sec = document.getElementById('result-section');
+  sec.classList.add('visible');
+  sec.scrollIntoView({ behavior:'smooth', block:'start' });
+});
+
+function renderFortune(p) {
+  var eff=p.eff, maya=p.maya, todayKin=p.todayKin, dailyStar=p.dailyStar, db=p.db;
+  // テーマ適用
+  applyTheme(p.overallScore);
+
+  // ヘッダー
+  document.getElementById('fh-stars').textContent =
+    eff.type+' '+eff.name+' ｜ マヤKIN '+maya.kin;
+  document.getElementById('fh-title').textContent =
+    '太陽の紋章：'+maya.sunSeal.name+'　銀河の音：'+maya.tone;
+  document.getElementById('fh-maya').textContent =
+    'キーワード：'+STAR_KEYWORDS[eff.star];
+
+  var todayW = ['日','月','火','水','木','金','土'];
+  var t = new Date();
+  document.getElementById('fh-today').textContent =
+    '今日 '+t.getFullYear()+'/'+(t.getMonth()+1)+'/'+t.getDate()+'（'+todayW[t.getDay()]+'）'
+    +' ｜ 日盤：'+STAR_NAMES[dailyStar]
+    +' ｜ 今日のKIN：'+todayKin.kin+' ('+todayKin.sunSeal.name+')';
+
+  // 総合運
+  var oc = LEVEL_COLORS[p.overallScore];
+  var ob = document.getElementById('overall-banner');
+  ob.style.borderColor = oc+'88';
+  ob.style.background = 'linear-gradient(160deg, '+oc+'18 0%, '+oc+'08 60%, transparent 100%)';
+  ob.style.setProperty('--ob-color', oc);
+  var deco = ob.querySelector('.ob-deco');
+  if (deco) deco.style.background = 'radial-gradient(circle, '+oc+' 0%, transparent 70%)';
+  document.getElementById('ob-stars').innerHTML = starsHTML(p.overallScore, oc);
+  document.getElementById('ob-level').textContent = LEVEL_LABELS[p.overallScore];
+  document.getElementById('ob-level').style.color = oc;
+  document.getElementById('ob-text').textContent = db.overall[scoreToLevel(p.overallScore)-1];
+
+  // 各カテゴリ
+  setFi('money',  p.moneyScore,  db.money);
+  setFi('love',   p.loveScore,   db.love);
+  setFi('work',   p.workScore,   db.work);
+  setFi('action', p.actionScore, db.action);
+
+  // BEAUTY TODAY（性別で切り替え）
+  var beautyLevel = scoreToLevel(p.overallScore) - 1; // 0,1,2
+  var bdb = (p.gender === 'male') ? BEAUTY_DB_MALE : BEAUTY_DB;
+  var isMale = (p.gender === 'male');
+  // ヘア
+  document.getElementById('beauty-hair').textContent = bdb.hair[eff.star][beautyLevel];
+  document.getElementById('beauty-hair-sub').textContent =
+    '✦ ' + eff.name + 'のキーワード：' + STAR_KEYWORDS[eff.star];
+  // メイク / グルーミング
+  var mkGroup = MAYA_MAKEUP_GROUP[maya.sunSeal.no];
+  document.getElementById('beauty-makeup').textContent = bdb.makeup[mkGroup][beautyLevel];
+  document.getElementById('beauty-makeup-sub').textContent =
+    '✦ 紋章カラー：' + MAKEUP_GROUP_LABELS[mkGroup];
+  // ラベル切り替え
+  var makeupLabel = document.querySelector('.makeup-card .beauty-card-label');
+  if (makeupLabel) makeupLabel.textContent = isMale
+    ? '💆 GROOMING ─ グルーミング・スキンケアのポイント'
+    : '💄 MAKE UP ─ メイクのポイント';
+  // 香り
+  document.getElementById('beauty-scent').textContent = bdb.scent[eff.star][beautyLevel];
+  document.getElementById('beauty-scent-sub').textContent =
+    '✦ 五行：' + GOGYO[eff.star] + ' の香り系統';
+
+  // ラッキーアイテム
+  var baseItems = STAR_LUCKY[eff.star];
+  var bonusItem = MAYA_LUCKY[todayKin.sunSeal.no];
+  var luckHtml = baseItems.map(function(it){
+    return '<span class="lucky-tag">'+it+'</span>';
+  }).join('') + '<span class="lucky-tag maya-tag">✦ '+bonusItem+'</span>';
+  document.getElementById('lucky-items').innerHTML = luckHtml;
+
+  // ラッキーパーソン
+  var lp = LUCKY_PERSON[eff.star];
+  document.getElementById('lp-badge').textContent = lp.badge;
+  document.getElementById('lp-traits').textContent = lp.traits;
+
+  // デイリーアドバイス
+  var adv = DAILY_ADVICE[eff.star];
+  var advLevel = p.overallScore<=2?'low':p.overallScore===3?'mid':'high';
+  document.getElementById('advice-text').textContent = adv[advLevel];
+
+  // 五行関係ラベル（分かりやすい日本語で）
+  var me = GOGYO[eff.star], td = GOGYO[dailyStar];
+  var relLabel, relColor;
+  if (me === td) {
+    relLabel = '比和（同じ気）'; relColor = '#60c0a0';
+  } else if (GENERATES[td] === me) {
+    relLabel = '相生受け ─ 今日のエネルギーがあなたを育む'; relColor = '#f59e0b';
+  } else if (GENERATES[me] === td) {
+    relLabel = '相生放ち ─ あなたが今日のエネルギーを育む'; relColor = '#a0c060';
+  } else if (DESTROYS[td] === me) {
+    relLabel = '相剋受け ─ 今日の気がやや逆らう方向'; relColor = '#ef7070';
+  } else if (DESTROYS[me] === td) {
+    relLabel = '相剋放ち ─ あなたの気が今日にやや逆らう'; relColor = '#d4a060';
+  } else {
+    relLabel = '普通'; relColor = '#9898c0';
+  }
+
+  // タロット（カード裏面にセット、ボタンで公開）
+  var tarotResult = getTodayTarot(eff.honmei.star>0?eff.age:0, 0, 0);
+  // 生年月日ベースのシードを正しく使用
+  var year=parseInt(inpYear.value), month=parseInt(inpMonth.value), day=parseInt(inpDay.value);
+  tarotResult = getTodayTarot(year, month, day);
+  var tc=tarotResult.card, isRev=tarotResult.rev;
+  var sc=SUIT_COLORS[tc.s];
+  var kw=isRev?tc.r[0]:tc.u[0], adv=isRev?tc.r[1]:tc.u[1];
+  var pos=isRev?'逆位置':'正位置';
+  var posStyle=isRev
+    ?'background:#4a0f0f;color:#fca5a5;border:1px solid #991b1b'
+    :'background:#0f2a4a;color:#93c5fd;border:1px solid #1d4ed8';
+
+  // カード表面HTMLをセット（画像 + 絵文字フォールバック）
+  var imgUrl = getTarotImageUrl(tarotResult.cardIdx);
+  var revClass = isRev ? ' reversed' : '';
+  document.getElementById('tarot-front').innerHTML=
+    '<div class="tarot-suit-tag" style="background:'+sc+'22;color:'+sc+';border:1px solid '+sc+'44">'+tc.s+'</div>'+
+    '<div class="tarot-img-wrap">'+
+      '<img class="tarot-img'+revClass+'" src="'+imgUrl+'" alt="'+tc.n+'" '+
+           'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
+      '<div class="tarot-icon" style="display:none'+(isRev?';transform:rotate(180deg)':'')+'">'+(tc.i||'🃏')+'</div>'+
+    '</div>'+
+    '<div class="tarot-name">'+tc.n+'</div>'+
+    '<div class="tarot-pos" style="'+posStyle+'">'+pos+'</div>'+
+    '<div class="tarot-key">'+kw+'</div>';
+
+  document.getElementById('tarot-adv').textContent=adv;
+  document.getElementById('tarot-resonance').textContent='✦ 今日の運勢との共鳴：'+getTarotResonance(tc,eff.star,p.overallScore);
+
+  // カードのフリップ
+  var flipEl=document.getElementById('tarot-flip');
+  var infoEl=document.getElementById('tarot-info');
+  var btnDraw=document.getElementById('btn-draw');
+  flipEl.classList.remove('flipped');
+  infoEl.style.display='none';
+  btnDraw.classList.remove('drawn');
+  btnDraw.textContent='🃏 本日のカードを引く';
+  // 既存のリスナーを削除するために cloneNode
+  var newBtn=btnDraw.cloneNode(true);
+  btnDraw.parentNode.replaceChild(newBtn,btnDraw);
+  function drawCard(){
+    flipEl.classList.add('flipped');
+    setTimeout(function(){ infoEl.style.display='block'; },400);
+    newBtn.classList.add('drawn');
+    newBtn.textContent='✦ カードが引かれました';
+    // カードをタップでも開く
+    document.getElementById('tarot-back').removeEventListener('click',drawCard);
+  }
+  newBtn.addEventListener('click',drawCard);
+  document.getElementById('tarot-back').addEventListener('click',drawCard);
+
+  // 算出根拠
+  document.getElementById('today-kin').innerHTML =
+    '<strong>算出根拠</strong><br>'
+    +(eff.age<=32 ? '⚡ '+eff.age+'歳のため月命星を使用　本命星：'+eff.honmei.name+'　月命星：'+eff.name+'<br>' : '')
+    +'あなたの星：'+eff.name+' （五行：'+me+'）<br>'
+    +'今日の日盤：'+STAR_NAMES[dailyStar]+' （五行：'+td+'）<br>'
+    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span><br>'
+    +'マヤKIN：'+maya.kin+' （'+maya.sunSeal.name+' / 銀河の音'+maya.tone+'）　今日のKIN：'+todayKin.kin+' （'+todayKin.sunSeal.name+'）';
+}
+
+function setFi(cat, score, texts) {
+  var c = LEVEL_COLORS[score];
+  var el = document.getElementById('fi-'+cat+'-stars').closest('.fortune-item');
+  if (el) el.style.setProperty('--fi-color', c);
+  document.getElementById('fi-'+cat+'-stars').innerHTML = starsHTML(score, c);
+  document.getElementById('fi-'+cat+'-text').textContent = texts[scoreToLevel(score)-1];
+}
+
+function escHtmlStr(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
