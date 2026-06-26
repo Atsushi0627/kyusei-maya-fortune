@@ -1038,23 +1038,22 @@ function gogyoCompatScore(elemA, elemB) {
 
 function getMayaCompatScore(maya, todayKin) {
   var r = getMayaResonance(maya, todayKin);
-  return clampScore(2 + r); /* 2〜5 */
+  var personal = (maya.kin % 13) * 0.08 + (maya.tone % 5) * 0.06;
+  return 2 + r + personal; /* 生年月日ごとに差が出る（最終でclamp） */
 }
 
 function getKanshiPanScore(kanshi, pan) {
   var ys = gogyoCompatScore(kanshi.stemElem, GOGYO[pan.yearStar]);
   var ms = gogyoCompatScore(kanshi.branchElem, GOGYO[pan.monthStar]);
   var ds = gogyoCompatScore(kanshi.stemElem, GOGYO[pan.dayStar]);
-  return clampScore((ys + ms + ds) / 3);
+  var personal = (kanshi.idx % 7) * 0.1;
+  return (ys + ms + ds) / 3 + personal;
 }
 
-var CAT_WEIGHTS = {
-  overall:{ y:0.9, m:1.1, d:2.6, kh:2.0, my:2.0, bd:1.2 },
-  money:  { y:1.0, m:1.0, d:2.4, kh:2.2, my:1.8, bd:1.2 },
-  love:   { y:0.8, m:1.2, d:2.4, kh:2.0, my:2.2, bd:1.0 },
-  work:   { y:1.1, m:1.1, d:2.0, kh:2.0, my:1.8, bd:1.1 },
-  action: { y:0.9, m:1.0, d:2.8, kh:2.2, my:2.0, bd:1.3 }
-};
+/* ポイント加重：年×2・月×1・日×3・マヤ×5・干支×1 */
+var PAN_W = { y: 2, m: 1, d: 3 };
+var W_KANSHI = 1;
+var W_MAYA = 5;
 
 function buildFortuneContext(year, month, day, gender) {
   var today = new Date();
@@ -1075,52 +1074,35 @@ function buildFortuneContext(year, month, day, gender) {
 }
 
 function computeUniversalScore(ctx, cat) {
-  var b = ctx.birth, p = ctx.today.pan, bp = b.birthPan, w = CAT_WEIGHTS[cat || 'overall'];
+  var b = ctx.birth, p = ctx.today.pan, bp = b.birthPan;
   var hon = b.honmei, tsu = b.tsukimei;
-  var bd = w.bd || 1.0;
-  var parts = [
-    getBaseScore(hon, p.yearStar) * w.y,
-    getBaseScore(hon, p.monthStar) * w.m,
-    getBaseScore(hon, p.dayStar) * w.d,
-    getBaseScore(tsu, p.yearStar) * w.y,
-    getBaseScore(tsu, p.monthStar) * w.m,
-    getBaseScore(tsu, p.dayStar) * w.d,
-    getKanshiPanScore(b.sexagenary, p) * w.kh,
-    getMayaCompatScore(b.maya, ctx.today.maya) * w.my,
-    getMayaCompatScore(b.maya, ctx.today.maya) * w.my,
-    getBaseScore(hon, bp.dayStar) * bd,
-    getBaseScore(tsu, bp.dayStar) * bd,
-    getBaseScore(bp.dayStar, p.dayStar) * bd * 2,
-    gogyoCompatScore(b.sexagenary.stemElem, GOGYO[bp.dayStar]) * bd,
-    gogyoCompatScore(b.sexagenary.branchElem, GOGYO[bp.dayStar]) * bd
+  var sc = cat ? function(a, t){ return categoryScore(a, t, cat); } : getBaseScore;
+  var items = [
+    [sc(hon, p.yearStar), PAN_W.y],
+    [sc(hon, p.monthStar), PAN_W.m],
+    [sc(hon, p.dayStar), PAN_W.d],
+    [sc(tsu, p.yearStar), PAN_W.y],
+    [sc(tsu, p.monthStar), PAN_W.m],
+    [sc(tsu, p.dayStar), PAN_W.d],
+    [getKanshiPanScore(b.sexagenary, p), W_KANSHI],
+    [getMayaCompatScore(b.maya, ctx.today.maya), W_MAYA],
+    [sc(hon, bp.dayStar), PAN_W.d],
+    [sc(tsu, bp.dayStar), PAN_W.d],
+    [sc(bp.dayStar, p.dayStar), PAN_W.d]
   ];
-  if (cat) {
-    for (var i = 0; i < 6; i++) {
-      var star = i < 3 ? hon : tsu;
-      var panStar = i % 3 === 0 ? p.yearStar : (i % 3 === 1 ? p.monthStar : p.dayStar);
-      parts[i] = categoryScore(star, panStar, cat) * (i < 3 ? [w.y, w.m, w.d][i] : [w.y, w.m, w.d][i % 3]);
-    }
-    parts[6] = getKanshiPanScore(b.sexagenary, p) * w.kh;
-    var myScore = getMayaCompatScore(b.maya, ctx.today.maya) * w.my;
-    parts[7] = myScore;
-    parts[8] = myScore;
-    parts[9] = categoryScore(hon, bp.dayStar, cat) * bd;
-    parts[10] = categoryScore(tsu, bp.dayStar, cat) * bd;
-    parts[11] = getBaseScore(bp.dayStar, p.dayStar) * bd * 2;
-  }
-  var sum = 0;
-  parts.forEach(function(v){ sum += v; });
-  return clampScore(sum / parts.length);
+  var sum = 0, wSum = 0;
+  items.forEach(function(it){ sum += it[0] * it[1]; wSum += it[1]; });
+  return clampScore(sum / wSum);
 }
 
 function getVarietyIndex(ctx, slot) {
   var b = ctx.birth, t = ctx.today, bp = b.birthPan;
   return (
-    b.honmei * 131 + b.tsukimei * 127 + b.day * 217 + b.month * 191 +
-    b.sexagenary.idx * 226 + b.maya.kin * 218 + b.maya.tone * 214 +
-    bp.dayStar * 197 + bp.monthStar * 193 +
+    b.honmei * 131 + b.tsukimei * 127 + b.day * 317 + b.month * 191 +
+    b.sexagenary.idx * 113 + b.maya.kin * 521 + b.maya.tone * 503 +
+    bp.dayStar * 297 + bp.monthStar * 101 + bp.yearStar * 197 +
     t.pan.yearStar * 103 + t.pan.monthStar * 101 + t.pan.dayStar * 97 +
-    t.maya.kin * 178 + t.maya.tone * 173 + slot * 83
+    t.maya.kin * 479 + t.maya.tone * 467 + slot * 83
   );
 }
 
@@ -2585,7 +2567,8 @@ function renderFortune(p) {
     +'本命星：'+eff.honmei.name+'　月命星：'+eff.tsukimei.name+'　六十干支：'+ctx.birth.sexagenary.name+'（'+ctx.birth.sexagenary.stemElem+'・'+ctx.birth.sexagenary.branchElem+'）<br>'
     +'生まれ日盤：'+STAR_NAMES[ctx.birth.birthPan.dayStar]+'（生年月日の日盤）<br>'
     +'占う日の九星：年盤 '+STAR_NAMES[pan.yearStar]+' ／ 月盤 '+STAR_NAMES[pan.monthStar]+' ／ 日盤 '+STAR_NAMES[pan.dayStar]+'<br>'
-    +'マヤ：あなた KIN'+maya.kin+'（'+maya.sunSeal.name+'・音'+maya.tone+'）→ 今日 KIN'+todayKin.kin+'（'+todayKin.sunSeal.name+'・音'+todayKin.tone+'）<span style="opacity:.7"> ※マヤ・日盤は2倍加重</span><br>'
+    +'マヤ：あなた KIN'+maya.kin+'（'+maya.sunSeal.name+'・音'+maya.tone+'）→ 今日 KIN'+todayKin.kin+'（'+todayKin.sunSeal.name+'・音'+todayKin.tone+'）<br>'
+    +'加重：年盤×2　月盤×1　日盤×3　マヤ×5　干支×1<br>'
     +'マヤ共鳴度：'+mayaResLabel+'（'+p.mayaResonance+'点）<br>'
     +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>（本命星×日盤）<br>'
     +'デイリーアドバイスID：'+(getDailyAdviceIndex(eff.tsukimei.star,pan.dayStar,p.eto.idx,maya.tone)+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString();
