@@ -3,11 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="生年月日から九星気学×マヤ暦で今日の運勢を診断。金運・恋愛・仕事・タロットまで。">
-  <meta name="theme-color" content="#060612">
-  <meta property="og:title" content="今日の運勢 | 九星×マヤ暦">
-  <meta property="og:description" content="生年月日を入れるだけ。九星気学とマヤ暦で今日のあなたの運勢を占います。">
-  <meta property="og:type" content="website">
   <title>今日の運勢 | 九星×マヤ暦</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -344,7 +339,7 @@
     .ob-stars { font-size: 1.8rem; letter-spacing: 6px; margin-bottom: 8px; }
     .ob-level { font-size: 1.4rem; font-weight: 900; margin-bottom: 12px;
       letter-spacing: .06em; }
-    .ob-text { font-size: .9rem; line-height: 1.75; color: var(--text-sub); }
+    .ob-text { font-size: .9rem; line-height: 1.75; color: var(--text-sub); white-space: pre-line; }
 
     /* 各運勢カード */
     .fortune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
@@ -792,19 +787,24 @@ function calculateAge(year, month, day) {
   return age;
 }
 
+function getTsukimeiStar(year, month, day) {
+  var h = getHonmeiStar(year, month, day);
+  var group = (h.star-1)%3;
+  var base = [8,5,2][group];
+  var m = month; if (day<6){m--;if(m<=0)m=12;}
+  var offset = m-2; if(offset<0)offset+=12;
+  var star = ((base-offset-1)%9+9)%9+1;
+  return { star:star, name:STAR_NAMES[star] };
+}
+
 function getEffectiveStar(year, month, day) {
   var age = calculateAge(year, month, day);
+  var honmei = getHonmeiStar(year, month, day);
+  var tsukimei = getTsukimeiStar(year, month, day);
   if (age <= 32) {
-    var h = getHonmeiStar(year, month, day);
-    var group = (h.star-1)%3;
-    var base = [8,5,2][group];
-    var m = month; if (day<6){m--;if(m<=0)m=12;}
-    var offset = m-2; if(offset<0)offset+=12;
-    var star = ((base-offset-1)%9+9)%9+1;
-    return { star:star, name:STAR_NAMES[star], type:'月命星', age:age, honmei:h };
+    return { star:tsukimei.star, name:tsukimei.name, type:'月命星', age:age, honmei:honmei, tsukimei:tsukimei };
   }
-  var h = getHonmeiStar(year, month, day);
-  return { star:h.star, name:h.name, type:'本命星', age:age, honmei:h };
+  return { star:honmei.star, name:honmei.name, type:'本命星', age:age, honmei:honmei, tsukimei:tsukimei };
 }
 
 /* ============================================================
@@ -943,6 +943,149 @@ function categoryScore(myStar, todayStar, cat) {
   if (cat==='work'  && (td==='木'||td==='火')) s=Math.min(5,s+1);
   if (cat==='action'&& (td==='木'||td==='火')) s=Math.min(5,s+1);
   return Math.min(5,Math.max(1,s));
+}
+
+function clampScore(s) { return Math.min(5, Math.max(1, Math.round(s))); }
+
+/* 本命星＋月命星を併用した九星スコア */
+function getKyuseiCombinedScore(honmeiStar, tsukimeiStar, todayStar, cat) {
+  var s1 = cat ? categoryScore(honmeiStar, todayStar, cat) : getBaseScore(honmeiStar, todayStar);
+  var s2 = cat ? categoryScore(tsukimeiStar, todayStar, cat) : getBaseScore(tsukimeiStar, todayStar);
+  return clampScore((s1 + s2) / 2);
+}
+
+/* マヤKINと今日のKINの共鳴度（0〜3）→ 点数補正 */
+function getMayaResonance(maya, todayKin) {
+  var mod = 0;
+  if (maya.tone === todayKin.tone) mod++;
+  if (maya.sunSeal.no === todayKin.sunSeal.no) mod++;
+  var sealDiff = (todayKin.sunSeal.no - maya.sunSeal.no + 20) % 20;
+  if (sealDiff === 10) mod++;
+  var kinDiff = Math.abs(maya.kin - todayKin.kin);
+  if (kinDiff > 0 && kinDiff % 13 === 0) mod++;
+  return mod;
+}
+
+function getMayaScoreAdjust(maya, todayKin) {
+  var r = getMayaResonance(maya, todayKin);
+  if (r >= 3) return 1;
+  if (r === 2) return 1;
+  if (r === 1) return 0;
+  return 0;
+}
+
+function getFinalScore(honmeiStar, tsukimeiStar, todayStar, maya, todayKin, cat) {
+  var base = getKyuseiCombinedScore(honmeiStar, tsukimeiStar, todayStar, cat);
+  return clampScore(base + getMayaScoreAdjust(maya, todayKin));
+}
+
+/* ============================================================
+   干支（生まれ年）
+============================================================ */
+var ETO_LIST = [
+  { name:'子（ねずみ）', trait:'機転と情報収集' },
+  { name:'丑（うし）',   trait:'忍耐と着実な蓄積' },
+  { name:'寅（とら）',   trait:'開拓と勇気' },
+  { name:'卯（うさぎ）', trait:'調和と繊細な感受' },
+  { name:'辰（たつ）',   trait:'変化と統率' },
+  { name:'巳（へび）',   trait:'洞察と深い集中' },
+  { name:'午（うま）',   trait:'行動力と華やかさ' },
+  { name:'未（ひつじ）', trait:'優しさと養育' },
+  { name:'申（さる）',   trait:'柔軟とユーモア' },
+  { name:'酉（とり）',   trait:'美意識と精度' },
+  { name:'戌（いぬ）',   trait:'忠誠と守り' },
+  { name:'亥（いのしし）',trait:'豊かな想像と包容' }
+];
+
+function getEto(year, month, day) {
+  var y = year;
+  if (month === 1 || (month === 2 && day <= 3)) y -= 1;
+  var idx = ((y - 4) % 12 + 12) % 12;
+  return { idx: idx, name: ETO_LIST[idx].name, trait: ETO_LIST[idx].trait };
+}
+
+function getGogyoRelationPhrase(myStar, todayStar) {
+  var me = GOGYO[myStar], td = GOGYO[todayStar];
+  if (me === td) return '比和の日。同じリズムで流れやすく、自分らしさが出しやすい';
+  if (GENERATES[td] === me) return '相生受けの日。今日の気があなたを後押ししてくれる';
+  if (GENERATES[me] === td) return '相生放ちの日。あなたの気が周囲や今日を育てる';
+  if (DESTROYS[td] === me) return '相剋受けの日。ペースを落とし、守りを意識すると吉';
+  if (DESTROYS[me] === td) return '相剋放ちの日。強さが出やすい。言葉と行動をひと工夫';
+  return 'バランスを取る日。';
+}
+
+/* ============================================================
+   デイリーアドバイス 12,636種（月命星×本日の星×干支×銀河の音）
+============================================================ */
+var TSUKI_ADVICE_FRAG = {
+  1:'柔軟に流れを読み、情報を集める', 2:'堅実に土台を固める', 3:'好奇心で新しい扉を開く',
+  4:'人との縁を大切に育てる', 5:'中心に立ち方向を示す', 6:'論理と正義で道を整える',
+  7:'楽しさと明るさを武器にする', 8:'信念を持って粘り強く進む', 9:'直感と情熱で光る'
+};
+var DAILY_ADVICE_FRAG = {
+  1:'静かな水のように整える', 2:'大地のように着実に歩む', 3:'木の芽のように動く',
+  4:'風のように人とつながる', 5:'中心の火で決断する', 6:'金のように研ぎ澄ます',
+  7:'金星の輝きで楽しむ', 8:'山のように変革する', 9:'炎のように情熱を注ぐ'
+};
+var TONE_ADVICE_FRAG = {
+  1:'目的を一つに絞る', 2:'二つの視点のバランスを取る', 3:'スイッチを入れて動く',
+  4:'形と測りを整える', 5:'周囲を照らす一言を', 6:'リズムを規則正しく',
+  7:'共鳴する相手に注目', 8:'調和と誠実さを', 9:'意図を明確に',
+  10:'形にして出す', 11:'ひとつ手放す', 12:'協力を頼る', 13:'全体を眺める'
+};
+var ADVICE_LEVEL_TAIL = {
+  low:' 今日は守りと休息を。小さな整えが明日を変えます。',
+  mid:' バランスを保てば、十分に活かせる一日です。',
+  high:' 流れは味方です。思い切って一歩踏み出して大丈夫。'
+};
+var ADVICE_PATTERN = [
+  function(p){ return p.rel+'。月命'+p.tsName+'のあなたに、本日'+p.dyName+'の気。'+p.etoTrait+'を活かし、音'+p.tone+'は「'+p.toneFrag+'」が鍵。'; },
+  function(p){ return p.etoName+'の知恵と'+p.tsName+'の月命が響く日。'+p.rel+'。'+p.dyName+'の流れの中で、'+p.toneFrag+'。'; },
+  function(p){ return '銀河の音'+p.tone+'──'+p.toneFrag+'。'+p.tsName+'×'+p.dyName+'の組み合わせは'+p.rel+'。'+p.etoTrait+'が後押し。'; },
+  function(p){ return '本日は'+p.dyName+'の日盤。月命'+p.tsName+'の視点で見ると、'+p.rel+'。'+p.etoName+'らしく、'+p.tsFrag+'。'; },
+  function(p){ return p.etoName+'の気配のなか、'+p.tsName+'と'+p.dyName+'が交わる。'+p.rel+'。音'+p.tone+'は'+p.toneFrag+'を促す。'; },
+  function(p){ return p.tsFrag+'──そんな月命のあなたへ。'+p.dyFrag+'一日。'+p.etoTrait+'と'+p.toneFrag+'が重なる。'; },
+  function(p){ return p.rel+'。'+p.dyFrag+'エネルギーの今日、'+p.etoName+'の直感と音'+p.tone+'のリズムで'+p.toneFrag+'。'; },
+  function(p){ return '月命'+p.tsName+'・本日'+p.dyName+'・'+p.etoName+'・音'+p.tone+'。'+p.rel+' '+p.tsFrag+'、'+p.dyFrag+'。'; }
+];
+
+function buildDailyAdviceParams(tsukimei, daily, etoIdx, tone) {
+  return {
+    tsName: STAR_NAMES[tsukimei], dyName: STAR_NAMES[daily],
+    etoName: ETO_LIST[etoIdx].name, etoTrait: ETO_LIST[etoIdx].trait,
+    tsFrag: TSUKI_ADVICE_FRAG[tsukimei], dyFrag: DAILY_ADVICE_FRAG[daily],
+    toneFrag: TONE_ADVICE_FRAG[tone], tone: tone,
+    rel: getGogyoRelationPhrase(tsukimei, daily)
+  };
+}
+
+function composeDailyAdvice(tsukimei, daily, etoIdx, tone, patternIdx) {
+  var p = buildDailyAdviceParams(tsukimei, daily, etoIdx, tone);
+  return ADVICE_PATTERN[patternIdx % ADVICE_PATTERN.length](p);
+}
+
+var DAILY_ADVICE_MAX = 9 * 9 * 12 * 13; /* 12,636通り */
+
+var ADVICE_VARIANT_OPEN = [
+  '今日の羅針盤──','ひとこと──','星のメッセージ：','今日意識してほしいのは、',
+  '流れの読み方：','あなたへの助言：','一日の鍵：','心に留めて──',
+  '今日のテーマ：','動き方のヒント：','縁の活かし方：','エネルギーの向け方：',
+  '午前中に意識して：','午後に活かして：','人との関わりで：','自分への声かけ：',
+  '迷ったときは：','決断の前に：','一息ついたら：','一歩踏み出すなら：',
+  '守りのポイント：','攻めのポイント：','整えるなら：','楽しむなら：','深めるなら：'
+];
+
+function getDailyAdviceText(tsukimei, daily, etoIdx, tone, level) {
+  var idx = getDailyAdviceIndex(tsukimei, daily, etoIdx, tone);
+  var pat = idx % ADVICE_PATTERN.length;
+  var open = ADVICE_VARIANT_OPEN[Math.floor(idx / ADVICE_PATTERN.length) % ADVICE_VARIANT_OPEN.length];
+  var base = open + composeDailyAdvice(tsukimei, daily, etoIdx, tone, pat);
+  return base + (ADVICE_LEVEL_TAIL[level] || ADVICE_LEVEL_TAIL.mid);
+}
+
+/* 月命星(9)×本日の星(9)×干支(12)×銀河の音(13) → 一意の0〜12635 */
+function getDailyAdviceIndex(tsukimei, daily, etoIdx, tone) {
+  return (tsukimei - 1) * 1404 + (daily - 1) * 156 + etoIdx * 13 + (tone - 1);
 }
 
 /* ============================================================
@@ -1509,6 +1652,66 @@ var MAYA_LUCKY = {
   19:'稲妻・嵐モチーフ',20:'太陽・黄色いもの'
 };
 
+/* 銀河の音（1〜13）別アドバイス */
+var TONE_ADVICE = {
+  1:{ low:'目的を一つに絞り、迷いを手放す日。磁石のように「これだけ」と決めると流れが整います。',
+      mid:'引き寄せのエネルギーが働く日。意図をはっきり伝えると、人とチャンスが自然につながります。',
+      high:'磁気の音が最大に響く日。やりたいことを宣言すると、思い以上の展開が動き出します。' },
+  2:{ low:'二つの選択に揺れやすい日。どちらも正解なので、今日は比較より「感じる方」を優先して。',
+      mid:'月のように陰と陽のバランスを意識する日。無理に決めず、流れを見守ると答えが見えます。',
+      high:'直感と論理がうまく噛み合う日。迷っていたことが、はっきりと方向づけられます。' },
+  3:{ low:'エネルギーが散りやすい日。やることを3つまでに絞り、一つずつ完了させましょう。',
+      mid:'スイッチを入れるタイミングが来た日。小さな行動が連鎖して、大きな動きにつながります。',
+      high:'電気の音が活性化する日。即断即決が吉。思い立ったらすぐ動くと運が開けます。' },
+  4:{ low:'形にする前に焦らない日。土台を整える時間を大切に。測り直しが後の成功につながります。',
+      mid:'自分らしい形を大切にする日。ルールや枠の中で、あなただけのやり方を見つけて。',
+      high:'自己存在の音が安定する日。積み上げてきたものが、確かな形として実を結びます。' },
+  5:{ low:'周囲との波長がずれやすい日。声を大きくしすぎず、まず聴く姿勢を大切に。',
+      mid:'あなたの存在感が周囲を照らす日。リーダーシップより「励ます一言」が効果的です。',
+      high:'倍音の音が共鳴する日。あなたの熱が人を動かす。堂々と自分を表現して大丈夫。' },
+  6:{ low:'リズムが乱れやすい日。睡眠・食事・仕事の順番を整えるだけで運気が戻ります。',
+      mid:'規則正しい行動が力になる日。決まった時間に決まったことを。安定が最大の武器です。',
+      high:'リズムの音が最高潮の日。習慣化したことが一気に実を結ぶ。継続の成果を実感できます。' },
+  7:{ low:'共鳴しすぎて疲れやすい日。人の感情を抱え込まず、距離を少し取りましょう。',
+      mid:'直感が冴える日。言葉にできない「なんとなく」を信じると、正しい選択ができます。',
+      high:'共鳴の音が開く日。人との心の通じ合いが深まる。大切な対話や出会いに恵まれます。' },
+  8:{ low:'理想と現実のギャップに焦らない日。誠実さを保つことが、信頼を積み上げます。',
+      mid:'調和を大切にする日。自分も相手も大切にする「両立」の発想が鍵になります。',
+      high:'銀河の音が整う日。バランス感覚が光る。調整役として大きな成果を上げられます。' },
+  9:{ low:'燃え尽き注意の日。勢いより休息。太陽のエネルギーは充電してから使いましょう。',
+      mid:'意図を明確にする日。「何のために」を意識すると、行動の精度が上がります。',
+      high:'太陽の音が輝く日。情熱と明晰さが両立。大きな一歩を踏み出すのに最適なタイミング。' },
+  10:{ low:'完璧を求めすぎない日。70%で出す勇気が、次の改善につながります。',
+      mid:'形にする力が働く日。アイデアをメモし、小さく試す。実現への一歩を踏み出して。',
+      high:'惑星の音が成就する日。計画が現実になる。仕上げ・提出・公開に最適な一日です。' },
+  11:{ low:'手放しの日。執着や古い習慣をひとつ手放すと、新しい風が入ってきます。',
+      mid:'解放のエネルギーが流れる日。片づけ・整理・関係の見直しが運気を上げます。',
+      high:'スペクトルの音が開く日。不要なものを手放した先に、大きなチャンスが待っています。' },
+  12:{ low:'一人で抱え込まない日。協力を頼むことが、実は最強の選択です。',
+      mid:'チームワークが光る日。分担と信頼で、一人では届かない場所に到達できます。',
+      high:'水晶の音が結晶化する日。協力関係が実を結ぶ。共同作業・紹介・縁結びに恵まれます。' },
+  13:{ low:'スピードを落とし、全体を眺める日。宇宙の視点で見ると、悩みが小さく見えます。',
+      mid:'超越のエネルギーが静かに働く日。日常の中に、小さな奇跡を見つけられます。',
+      high:'宇宙の音が満ちる日。直感が次元を超える。長期的な夢やビジョンに向けた一歩を。' }
+};
+
+/* 銀河の音別・総合運のひとこと */
+var TONE_OVERALL = {
+  1:['目的を定めるほど、運は一方向に集まります。','磁石のように、やりたいことを引き寄せる日。','「これだ」と決めた瞬間、流れが一気に動き出します。'],
+  2:['二つの視点を行き来しながら、答えを探す日。','月の光のように、柔らかな直感が導いてくれます。','陰と陽が調和し、迷いが晴れるタイミングです。'],
+  3:['スイッチを入れるなら、今日がその日。','電気のエネルギーで、停滞を突破できます。','行動のスピードが、幸運のスピードを決めます。'],
+  4:['形と測り直しが、今日のテーマです。','自分らしいフォーマットを整えると運が安定します。','積み上げたものが、確かな形として現れます。'],
+  5:['あなたの声が、周囲を照らす日。','存在感を活かしつつ、人を励ますと吉。','倍音のように、あなたの熱が周囲に伝わります。'],
+  6:['リズムを整えるだけで、運気は戻ります。','規則正しさが、今日最大の武器です。','習慣の力が、大きな成果を生み出します。'],
+  7:['共鳴する相手・場所に注目して。','直感のままに動くと、正しい流れに乗れます。','心と心が通じ合う、特別な縁の日。'],
+  8:['調和と誠実さが、信頼を深めます。','バランス感覚が光る一日です。','銀河のように、全体を見渡す視点が開きます。'],
+  9:['意図を明確にすると、太陽が味方します。','情熱に方向を与えると、大きく動けます。','太陽の音が、あなたの一歩を後押しします。'],
+  10:['形にすることが、今日の成功の鍵。','完成より「まず出す」が運を開きます。','惑星のように、夢が現実に落ちてきます。'],
+  11:['手放すほど、新しいものが入ってきます。','整理と解放が、運気をリセットします。','スペクトルのように、古い枠を超えられます。'],
+  12:['協力が、一人の力を何倍にもします。','チームで動くと、最高の結果が出ます。','水晶のように、関係が美しく結晶化します。'],
+  13:['全体を見渡すと、道が見えてきます。','宇宙の視点が、悩みを軽くしてくれます。','超越のエネルギーが、長期的な夢を照らします。']
+};
+
 /* デイリーアドバイス */
 var DAILY_ADVICE = {
   1:{
@@ -1798,16 +2001,20 @@ document.getElementById('btn-fortune').addEventListener('click', function() {
   var maya    = getKin(year, month, day);
   var todayKin= getKin(today.getFullYear(), today.getMonth()+1, today.getDate());
   var dailyStar = getDailyKyusei(today);
-  var db      = FORTUNE_DB[eff.star];
+  var honmeiStar = eff.honmei.star;
+  var tsukimeiStar = eff.tsukimei.star;
+  var eto = getEto(year, month, day);
+  var db      = FORTUNE_DB[honmeiStar];
 
-  var overallScore = getBaseScore(eff.star, dailyStar);
-  var moneyScore   = categoryScore(eff.star, dailyStar, 'money');
-  var loveScore    = categoryScore(eff.star, dailyStar, 'love');
-  var workScore    = categoryScore(eff.star, dailyStar, 'work');
-  var actionScore  = categoryScore(eff.star, dailyStar, 'action');
+  var overallScore = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, null);
+  var moneyScore   = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'money');
+  var loveScore    = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'love');
+  var workScore    = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'work');
+  var actionScore  = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'action');
+  var mayaResonance = getMayaResonance(maya, todayKin);
 
   renderFortune({
-    eff, maya, todayKin, dailyStar,
+    eff, maya, todayKin, dailyStar, mayaResonance, eto,
     overallScore, moneyScore, loveScore, workScore, actionScore, db,
     gender: genderVal
   });
@@ -1824,11 +2031,11 @@ function renderFortune(p) {
 
   // ヘッダー
   document.getElementById('fh-stars').textContent =
-    eff.type+' '+eff.name+' ｜ マヤKIN '+maya.kin;
+    '本命星 '+eff.honmei.name+' ｜ 月命星 '+eff.tsukimei.name+' ｜ マヤKIN '+maya.kin;
   document.getElementById('fh-title').textContent =
     '太陽の紋章：'+maya.sunSeal.name+'　銀河の音：'+maya.tone;
   document.getElementById('fh-maya').textContent =
-    'キーワード：'+STAR_KEYWORDS[eff.star];
+    'キーワード：'+STAR_KEYWORDS[eff.honmei.star];
 
   var todayW = ['日','月','火','水','木','金','土'];
   var t = new Date();
@@ -1848,7 +2055,10 @@ function renderFortune(p) {
   document.getElementById('ob-stars').innerHTML = starsHTML(p.overallScore, oc);
   document.getElementById('ob-level').textContent = LEVEL_LABELS[p.overallScore];
   document.getElementById('ob-level').style.color = oc;
-  document.getElementById('ob-text').textContent = db.overall[scoreToLevel(p.overallScore)-1];
+  var levelIdx = scoreToLevel(p.overallScore) - 1;
+  var toneLine = TONE_OVERALL[maya.tone] ? TONE_OVERALL[maya.tone][levelIdx] : '';
+  document.getElementById('ob-text').textContent =
+    db.overall[levelIdx] + (toneLine ? '\n' + toneLine : '');
 
   // 各カテゴリ
   setFi('money',  p.moneyScore,  db.money);
@@ -1860,10 +2070,11 @@ function renderFortune(p) {
   var beautyLevel = scoreToLevel(p.overallScore) - 1; // 0,1,2
   var bdb = (p.gender === 'male') ? BEAUTY_DB_MALE : BEAUTY_DB;
   var isMale = (p.gender === 'male');
+  var honmeiStar = eff.honmei.star;
   // ヘア
-  document.getElementById('beauty-hair').textContent = bdb.hair[eff.star][beautyLevel];
+  document.getElementById('beauty-hair').textContent = bdb.hair[honmeiStar][beautyLevel];
   document.getElementById('beauty-hair-sub').textContent =
-    '✦ ' + eff.name + 'のキーワード：' + STAR_KEYWORDS[eff.star];
+    '✦ ' + eff.honmei.name + 'のキーワード：' + STAR_KEYWORDS[honmeiStar];
   // メイク / グルーミング
   var mkGroup = MAYA_MAKEUP_GROUP[maya.sunSeal.no];
   document.getElementById('beauty-makeup').textContent = bdb.makeup[mkGroup][beautyLevel];
@@ -1875,12 +2086,12 @@ function renderFortune(p) {
     ? '💆 GROOMING ─ グルーミング・スキンケアのポイント'
     : '💄 MAKE UP ─ メイクのポイント';
   // 香り
-  document.getElementById('beauty-scent').textContent = bdb.scent[eff.star][beautyLevel];
+  document.getElementById('beauty-scent').textContent = bdb.scent[honmeiStar][beautyLevel];
   document.getElementById('beauty-scent-sub').textContent =
-    '✦ 五行：' + GOGYO[eff.star] + ' の香り系統';
+    '✦ 五行：' + GOGYO[honmeiStar] + ' の香り系統';
 
   // ラッキーアイテム
-  var baseItems = STAR_LUCKY[eff.star];
+  var baseItems = STAR_LUCKY[honmeiStar];
   var bonusItem = MAYA_LUCKY[todayKin.sunSeal.no];
   var luckHtml = baseItems.map(function(it){
     return '<span class="lucky-tag">'+it+'</span>';
@@ -1888,17 +2099,23 @@ function renderFortune(p) {
   document.getElementById('lucky-items').innerHTML = luckHtml;
 
   // ラッキーパーソン
-  var lp = LUCKY_PERSON[eff.star];
+  var lp = LUCKY_PERSON[honmeiStar];
   document.getElementById('lp-badge').textContent = lp.badge;
   document.getElementById('lp-traits').textContent = lp.traits;
 
-  // デイリーアドバイス
-  var adv = DAILY_ADVICE[eff.star];
+  // デイリーアドバイス（月命星×本日の星×干支×銀河の音 → 200通り）
   var advLevel = p.overallScore<=2?'low':p.overallScore===3?'mid':'high';
-  document.getElementById('advice-text').textContent = adv[advLevel];
+  var advIdx = getDailyAdviceIndex(eff.tsukimei.star, dailyStar, p.eto.idx, maya.tone);
+  document.getElementById('advice-text').textContent =
+    getDailyAdviceText(eff.tsukimei.star, dailyStar, p.eto.idx, maya.tone, advLevel);
+  var adviceTitle = document.querySelector('.advice-title');
+  if (adviceTitle) {
+    adviceTitle.textContent = 'DAILY ADVICE ─ デイリーアドバイス（'+(advIdx+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString()+'）';
+  }
 
-  // 五行関係ラベル（分かりやすい日本語で）
-  var me = GOGYO[eff.star], td = GOGYO[dailyStar];
+  // 五行関係ラベル（本命星＋月命星のうち良い方を表示）
+  var me = GOGYO[eff.honmei.star], td = GOGYO[dailyStar];
+  var meTsuki = GOGYO[eff.tsukimei.star];
   var relLabel, relColor;
   if (me === td) {
     relLabel = '比和（同じ気）'; relColor = '#60c0a0';
@@ -1942,7 +2159,7 @@ function renderFortune(p) {
     '<div class="tarot-key">'+kw+'</div>';
 
   document.getElementById('tarot-adv').textContent=adv;
-  document.getElementById('tarot-resonance').textContent='✦ 今日の運勢との共鳴：'+getTarotResonance(tc,eff.star,p.overallScore);
+  document.getElementById('tarot-resonance').textContent='✦ 今日の運勢との共鳴：'+getTarotResonance(tc,eff.honmei.star,p.overallScore);
 
   // カードのフリップ
   var flipEl=document.getElementById('tarot-flip');
@@ -1967,13 +2184,15 @@ function renderFortune(p) {
   document.getElementById('tarot-back').addEventListener('click',drawCard);
 
   // 算出根拠
+  var mayaResLabel = ['共鳴弱','やや共鳴','共鳴中','強い共鳴'][Math.min(3, p.mayaResonance||0)];
   document.getElementById('today-kin').innerHTML =
     '<strong>算出根拠</strong><br>'
-    +(eff.age<=32 ? '⚡ '+eff.age+'歳のため月命星を使用　本命星：'+eff.honmei.name+'　月命星：'+eff.name+'<br>' : '')
-    +'あなたの星：'+eff.name+' （五行：'+me+'）<br>'
+    +'本命星：'+eff.honmei.name+' （五行：'+me+'）　月命星：'+eff.tsukimei.name+' （五行：'+meTsuki+'）<br>'
     +'今日の日盤：'+STAR_NAMES[dailyStar]+' （五行：'+td+'）<br>'
-    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span><br>'
-    +'マヤKIN：'+maya.kin+' （'+maya.sunSeal.name+' / 銀河の音'+maya.tone+'）　今日のKIN：'+todayKin.kin+' （'+todayKin.sunSeal.name+'）';
+    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>（本命星ベース）<br>'
+    +'マヤKIN：'+maya.kin+' （'+maya.sunSeal.name+' / 銀河の音'+maya.tone+'）　今日のKIN：'+todayKin.kin+' （'+todayKin.sunSeal.name+' / 音'+todayKin.tone+'）<br>'
+    +'マヤ共鳴度：'+mayaResLabel+'（音・紋章・KIN波の一致：'+(p.mayaResonance||0)+'点・2点以上で運勢加点）<br>'
+    +'デイリーアドバイス：月命'+eff.tsukimei.name+' × 本日'+STAR_NAMES[dailyStar]+' × '+p.eto.name+' × 銀河の音'+maya.tone+'（組合せID '+(getDailyAdviceIndex(eff.tsukimei.star,dailyStar,p.eto.idx,maya.tone)+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString()+'）';
 }
 
 function setFi(cat, score, texts) {
