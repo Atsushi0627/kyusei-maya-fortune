@@ -1047,7 +1047,23 @@ function getKanshiPanScore(kanshi, pan) {
   var ms = gogyoCompatScore(kanshi.branchElem, GOGYO[pan.monthStar]);
   var ds = gogyoCompatScore(kanshi.stemElem, GOGYO[pan.dayStar]);
   var personal = (kanshi.idx % 7) * 0.1;
-  return (ys + ms + ds) / 3 + personal;
+  return clampScore((ys + ms + ds) / 3 + personal);
+}
+
+function getKanshiRelLabel(score) {
+  var s = Math.round(score);
+  if (s >= 5) return 'よく調和する';
+  if (s >= 4) return '穏やかに響き合う';
+  if (s >= 3) return 'バランスを取りながら活かせる';
+  if (s >= 2) return '慎重さが助けになる';
+  return '無理せず守りを意識';
+}
+
+function getMayaResLabel(r) {
+  if (r >= 3) return 'マヤの共鳴が強く、直感が冴え渡る';
+  if (r >= 2) return 'マヤの響きがあり、縁が動きやすい';
+  if (r >= 1) return 'マヤの音がゆるやかに共鳴する';
+  return '内側から静かに整う日';
 }
 
 /* ポイント加重：年×2・月×1・日×3・マヤ×5・干支×1 */
@@ -1135,26 +1151,27 @@ function buildFortuneParams(ctx, cat, levelIdx) {
     yRel: getGogyoRelationPhrase(b.honmei, pan.yearStar),
     mRel: getGogyoRelationPhrase(b.tsukimei, pan.monthStar),
     dRel: getGogyoRelationPhrase(b.tsukimei, pan.dayStar),
-    kScore: getKanshiPanScore(b.sexagenary, pan),
-    mRes: getMayaResonance(b.maya, t.maya),
+    kRel: getKanshiRelLabel(getKanshiPanScore(b.sexagenary, pan)),
+    mRel2: getMayaResLabel(getMayaResonance(b.maya, t.maya)),
+    birthDayPan: STAR_NAMES[ctx.birth.birthPan.dayStar],
     focus: CAT_FOCUS[cat][levelIdx % CAT_FOCUS[cat].length],
     level: levelIdx, cat: cat
   };
 }
 
 var FORTUNE_PATTERN = [
-  function(p){ return '年盤'+p.yPan+'（'+p.yElem+'）──'+p.yRel+'。'+p.focus+'は年の流れに沿って整えると吉。'; },
-  function(p){ return '月盤'+p.mPan+'（'+p.mElem+'）──'+p.mRel+'。'+p.etoName+'の'+p.etoTrait+'を活かすと'+p.focus+'が開ける。'; },
-  function(p){ return '日盤'+p.dPan+'（'+p.dElem+'）──'+p.dRel+'。今日の一歩が'+p.focus+'を左右する。'; },
-  function(p){ return p.kanshi+'の'+p.stemElem+'・'+p.branchElem+'が三盤と響く（相性'+p.kScore+'/5）。'+p.kanshi+'の知恵を借りて。'; },
-  function(p){ return 'マヤKIN'+p.kin+'（'+p.seal+'・音'+p.tone+'）×今日KIN'+p.todayKin+'（'+p.todaySeal+'）。共鳴度'+p.mRes+'/3。'; },
-  function(p){ return '本命'+p.hnName+'×月命'+p.tsName+'の視点で、年盤'+p.yPan+'・月盤'+p.mPan+'・日盤'+p.dPan+'を読むと'+p.focus+'の鍵が見える。'; },
+  function(p){ return '年盤'+p.yPan+'の'+p.yElem+'の気──'+p.yRel+' '+p.focus+'は年の流れに沿って整えると吉。'; },
+  function(p){ return '月盤'+p.mPan+'の'+p.mElem+'の気──'+p.mRel+' '+p.etoName+'の'+p.etoTrait+'を活かすと道が開ける。'; },
+  function(p){ return '日盤'+p.dPan+'の'+p.dElem+'の気──'+p.dRel+' 今日の一歩が'+p.focus+'を左右する。'; },
+  function(p){ return p.kanshi+'の'+p.stemElem+'と'+p.branchElem+'が今日の三盤と'+p.kRel+'。'+p.kanshi+'の知恵をひとつ借りて。'; },
+  function(p){ return p.seal+'（KIN '+p.kin+'・音'+p.tone+'）と今日の'+p.todaySeal+'。'+p.mRel2+'。'; },
+  function(p){ return p.kanshi+'生まれ・生まれ日盤'+p.birthDayPan+'──'+p.hnName+'×'+p.tsName+'の視点で、'+p.yPan+'・'+p.mPan+'・'+p.dPan+'を読むと'+p.focus+'の鍵が見える。'; },
   function(p){ return p.etoName+'生まれのあなたに、'+p.mPan+'の月盤は'+p.mRel+'。'+p.seal+'の紋章が後押し。'; },
-  function(p){ return '銀河の音'+p.tone+'のリズムで'+p.focus+'を整える。日盤'+p.dPan+'の'+p.dElem+'の気に合わせて動いて。'; },
-  function(p){ return '年'+p.yElem+'・月'+p.mElem+'・日'+p.dElem+'の三層。'+p.kanshi+'とKIN'+p.kin+'が織る今日の'+p.focus+'。'; },
+  function(p){ return '銀河の音'+p.tone+'のリズムで'+p.focus+'を整える。'+p.dPan+'の'+p.dElem+'の気に合わせて動いて。'; },
+  function(p){ return '年'+p.yElem+'・月'+p.mElem+'・日'+p.dElem+'。'+p.kanshi+'とKIN '+p.kin+'が織る今日の'+p.focus+'。'; },
   function(p){ return p.tsName+'の月命×'+p.dPan+'の日盤──'+p.dRel+' '+p.etoTrait+'を意識して。'; },
-  function(p){ return '今日の'+p.todaySeal+'（KIN'+p.todayKin+'）が'+p.seal+'のあなたと響く。'+p.focus+'は直感を信じて。'; },
-  function(p){ return p.kanshi+'×'+p.yPan+'×'+p.mPan+'×'+p.dPan+'。盤と干支の重なりが'+p.focus+'の答えを示す。'; }
+  function(p){ return '今日の'+p.todaySeal+'が'+p.seal+'のあなたと響く。'+p.focus+'は直感を信じて。'; },
+  function(p){ return p.kanshi+'×生まれ日盤'+p.birthDayPan+'×'+p.dPan+'の日盤。あなただけの'+p.focus+'の答えがここにある。'; }
 ];
 
 var FORTUNE_EXTRA = {
@@ -1273,7 +1290,7 @@ var PERSON_PATTERN = [
   function(p){ return '今日は'+p.mPan+'の月盤・'+p.kanshi+'の気と共鳴しやすい方です。'; },
   function(p){ return '年盤'+p.yPan+'の星を持つ方、または日盤'+p.dPan+'の気に強い方が縁を深めます。'; },
   function(p){ return p.kanshi+'と相生の関係にある方との会話が運気を上げます。'; },
-  function(p){ return 'マヤKIN共鳴度'+p.mRes+'/3──'+p.seal+'と'+p.todaySeal+'が響く方に注目。'; },
+  function(p){ return p.seal+'と'+p.todaySeal+'が響き合う方に注目。'+getMayaResLabel(p.mRes)+'。'; },
   function(p){ return '銀河の音'+p.tone+'と同じか補完関係の方が理解者になりやすい。'; },
   function(p){ return p.etoName+'の知恵を持つ方、または'+p.hnName+'を育てる五行の方。'; },
   function(p){ return '穏やかな笑顔で、'+p.mPan+'の月盤のエネルギーを自然に持つ方。'; },
@@ -1296,17 +1313,16 @@ var PERSON_EXTRA = [
 function pickFortuneText(db, cat, levelIdx, ctx) {
   var slot = cat === 'overall' ? 1 : ({money:2,love:3,work:4,action:5}[cat] || 1);
   var idx = getVarietyIndex(ctx, slot);
-  var pan = ctx.today.pan;
-  var hint = '【年盤'+STAR_NAMES[pan.yearStar]+'・月盤'+STAR_NAMES[pan.monthStar]+'・日盤'+STAR_NAMES[pan.dayStar]
-    +'／生まれ日盤'+STAR_NAMES[ctx.birth.birthPan.dayStar]+'・'+ctx.birth.sexagenary.name+'×KIN'+ctx.birth.maya.kin+'】';
-  var base = db[cat][levelIdx];
   var p = buildFortuneParams(ctx, cat, levelIdx);
   var patIdx = idx % FORTUNE_PATTERN.length;
   var extraIdx = Math.floor(idx / FORTUNE_PATTERN.length) % FORTUNE_EXTRA[cat].length;
   var composed = FORTUNE_PATTERN[patIdx](p);
   var extra = FORTUNE_EXTRA[cat][extraIdx];
   var tail = FORTUNE_LEVEL_TAIL[cat][levelIdx];
-  return hint + '\n' + base + '\n' + composed + ' ' + extra + ' ' + tail;
+  var base = db[cat][levelIdx];
+  var catLabel = {overall:'総合運',money:'金運',love:'恋愛運',work:'仕事運',action:'行動運'}[cat] || '運勢';
+  var head = p.kanshi+'・'+p.seal+'・生まれ日盤'+p.birthDayPan+'の今日の'+catLabel+'。';
+  return head + '\n' + base + '\n' + composed + ' ' + extra + ' ' + tail;
 }
 
 function pickBeautyText(arr, level, ctx, slot, extraKey) {
@@ -2482,13 +2498,10 @@ function renderFortune(p) {
 
   // デイリーアドバイス（月命星×本日の星×干支×銀河の音 → 200通り）
   var advLevel = p.overallScore<=2?'low':p.overallScore===3?'mid':'high';
-  var advIdx = getDailyAdviceIndex(eff.tsukimei.star, dailyStar, p.eto.idx, maya.tone);
   document.getElementById('advice-text').textContent =
     getDailyAdviceText(eff.tsukimei.star, dailyStar, p.eto.idx, maya.tone, advLevel);
   var adviceTitle = document.querySelector('.advice-title');
-  if (adviceTitle) {
-    adviceTitle.textContent = 'DAILY ADVICE ─ デイリーアドバイス（'+(advIdx+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString()+'）';
-  }
+  if (adviceTitle) adviceTitle.textContent = 'DAILY ADVICE ─ 今日のひとこと';
 
   // 五行関係ラベル（本命星＋月命星のうち良い方を表示）
   var me = GOGYO[eff.honmei.star], td = GOGYO[dailyStar];
@@ -2563,15 +2576,13 @@ function renderFortune(p) {
   // 算出根拠
   var mayaResLabel = ['共鳴弱','やや共鳴','共鳴中','強い共鳴'][Math.min(3, p.mayaResonance||0)];
   document.getElementById('today-kin').innerHTML =
-    '<strong>算出根拠（統合判定）</strong><br>'
-    +'本命星：'+eff.honmei.name+'　月命星：'+eff.tsukimei.name+'　六十干支：'+ctx.birth.sexagenary.name+'（'+ctx.birth.sexagenary.stemElem+'・'+ctx.birth.sexagenary.branchElem+'）<br>'
-    +'生まれ日盤：'+STAR_NAMES[ctx.birth.birthPan.dayStar]+'（生年月日の日盤）<br>'
-    +'占う日の九星：年盤 '+STAR_NAMES[pan.yearStar]+' ／ 月盤 '+STAR_NAMES[pan.monthStar]+' ／ 日盤 '+STAR_NAMES[pan.dayStar]+'<br>'
-    +'マヤ：あなた KIN'+maya.kin+'（'+maya.sunSeal.name+'・音'+maya.tone+'）→ 今日 KIN'+todayKin.kin+'（'+todayKin.sunSeal.name+'・音'+todayKin.tone+'）<br>'
-    +'加重：年盤×2　月盤×1　日盤×3　マヤ×5　干支×1<br>'
-    +'マヤ共鳴度：'+mayaResLabel+'（'+p.mayaResonance+'点）<br>'
-    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>（本命星×日盤）<br>'
-    +'デイリーアドバイスID：'+(getDailyAdviceIndex(eff.tsukimei.star,pan.dayStar,p.eto.idx,maya.tone)+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString();
+    '<strong>あなたの星の情報</strong><br>'
+    +'本命星：'+eff.honmei.name+'　月命星：'+eff.tsukimei.name+'　六十干支：'+ctx.birth.sexagenary.name+'<br>'
+    +'生まれ日盤：'+STAR_NAMES[ctx.birth.birthPan.dayStar]+'　マヤKIN：'+maya.kin+'（'+maya.sunSeal.name+'・音'+maya.tone+'）<br>'
+    +'今日の九星：年盤 '+STAR_NAMES[pan.yearStar]+' ／ 月盤 '+STAR_NAMES[pan.monthStar]+' ／ 日盤 '+STAR_NAMES[pan.dayStar]+'<br>'
+    +'今日のマヤ：KIN '+todayKin.kin+'（'+todayKin.sunSeal.name+'）<br>'
+    +'マヤの共鳴：'+mayaResLabel+'　'
+    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>';
 }
 
 function setFi(cat, score, text) {
