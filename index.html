@@ -887,32 +887,34 @@ function getKin(year, month, day) {
 ============================================================ */
 var SEKKI_DAYS = [0,6,4,6,5,6,6,7,8,8,8,7,7]; // 各月の節入り概算日（index 1-12）
 
-function getDailyKyusei(date) {
-  var year  = date.getFullYear();
+function getTodayPan(date) {
+  var year = date.getFullYear();
   var month = date.getMonth()+1;
-  var day   = date.getDate();
+  var day = date.getDate();
+
+  var y = year;
+  if (month === 1 || (month === 2 && day <= 3)) y -= 1;
+  var yearStar = getHonmeiStar(y, 3, 15).star;
 
   var sekkiDay = SEKKI_DAYS[month];
   var baseYear = year, baseMonth = month;
   var daysFromSekki = day - sekkiDay;
-
   if (daysFromSekki < 0) {
-    // 節入り前 → 前月基準
     baseMonth = month - 1;
     if (baseMonth <= 0) { baseMonth = 12; baseYear = year - 1; }
-    var daysInPrev = new Date(year, month-1, 0).getDate();
+    var daysInPrev = new Date(year, month - 1, 0).getDate();
     daysFromSekki = day + (daysInPrev - SEKKI_DAYS[baseMonth]);
   }
-
-  // 月盤中宮を算出
   var yHonmei = getHonmeiStar(baseYear, 3, 15);
-  var yGroup  = (yHonmei.star-1)%3;
-  var mOffset = baseMonth-2; if(mOffset<0)mOffset+=12;
-  var monthStar = ((([8,5,2][yGroup])-mOffset-1)%9+9)%9+1;
+  var yGroup = (yHonmei.star - 1) % 3;
+  var mOffset = baseMonth - 2; if (mOffset < 0) mOffset += 12;
+  var monthStar = ((([8, 5, 2][yGroup]) - mOffset - 1) % 9 + 9) % 9 + 1;
+  var dayStar = ((monthStar - daysFromSekki - 1) % 9 + 9) % 9 + 1;
+  return { yearStar: yearStar, monthStar: monthStar, dayStar: dayStar };
+}
 
-  // 日盤 = 月盤 - 節入りからの日数
-  var dailyStar = ((monthStar - daysFromSekki - 1)%9+9)%9+1;
-  return dailyStar;
+function getDailyKyusei(date) {
+  return getTodayPan(date).dayStar;
 }
 
 /* ============================================================
@@ -968,15 +970,381 @@ function getMayaResonance(maya, todayKin) {
 
 function getMayaScoreAdjust(maya, todayKin) {
   var r = getMayaResonance(maya, todayKin);
-  if (r >= 3) return 1;
-  if (r === 2) return 1;
-  if (r === 1) return 0;
+  if (r >= 2) return 1;
   return 0;
 }
 
 function getFinalScore(honmeiStar, tsukimeiStar, todayStar, maya, todayKin, cat) {
   var base = getKyuseiCombinedScore(honmeiStar, tsukimeiStar, todayStar, cat);
   return clampScore(base + getMayaScoreAdjust(maya, todayKin));
+}
+
+/* ============================================================
+   統合判定エンジン（年盤・月盤・日盤・六十干支・マヤ暦）
+============================================================ */
+var JUKAN = [
+  '甲子','乙丑','丙寅','丁卯','戊辰','己巳','庚午','辛未','壬申','癸酉',
+  '甲戌','乙亥','丙子','丁丑','戊寅','己卯','庚辰','辛巳','壬午','癸未',
+  '甲申','乙酉','丙戌','丁亥','戊子','己丑','庚寅','辛卯','壬辰','癸巳',
+  '甲午','乙未','丙申','丁酉','戊戌','己亥','庚子','辛丑','壬寅','癸卯',
+  '甲辰','乙巳','丙午','丁未','戊申','己酉','庚戌','辛亥','壬子','癸丑',
+  '甲寅','乙卯','丙辰','丁巳','戊午','己未','庚申','辛酉','壬戌','癸亥'
+];
+var STEM_GOGYO = ['木','木','火','火','土','土','金','金','水','水'];
+var BRANCH_GOGYO = ['水','土','木','木','土','火','火','土','金','金','土','水'];
+var KANSHI_LUCKY = [
+  '青い小物','白いハンカチ','木のブレスレット','観葉植物','黄色いアイテム',
+  '陶器','赤いリボン','天然石','金属アクセ','透明ガラス',
+  '革小物','手編みアイテム','シルクスカーフ','アロマオイル','和紙のしおり',
+  '貝殻モチーフ','真鍮小物','藍染め','朱色の小物','水晶',
+  '竹製品','麻素材','漆器','金箔小物','水色のカード',
+  '土器','炎色のキャンドル','銀のチャーム','緑のストーン','パール',
+  '風鈴','茶色のレザー','桜モチーフ','龍のモチーフ','蓮のモチーフ',
+  '鏡のチャーム','星型アクセ','太陽モチーフ','月のモチーフ','旅のお守り',
+  '手帳','筆記具','地図モチーフ','橋の絵','種のモチーフ',
+  '盾モチーフ','旗','地球儀','稲妻モチーフ','嵐の絵',
+  '鏡面小物','白い花','黄金の小物','黒曜石','海の写真'
+];
+
+function toJulianDay(y, m, d) {
+  if (m <= 2) { y -= 1; m += 12; }
+  var A = Math.floor(y / 100);
+  var B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524;
+}
+
+function getSexagenary60(year, month, day) {
+  var idx = ((toJulianDay(year, month, day) + 49) % 60 + 60) % 60;
+  var stem = idx % 10, branch = idx % 12;
+  return {
+    idx: idx, name: JUKAN[idx], stem: stem, branch: branch,
+    stemElem: STEM_GOGYO[stem], branchElem: BRANCH_GOGYO[branch]
+  };
+}
+
+function gogyoCompatScore(elemA, elemB) {
+  if (!elemA || !elemB) return 3;
+  if (elemA === elemB) return 4;
+  if (GENERATES[elemB] === elemA) return 5;
+  if (GENERATES[elemA] === elemB) return 3;
+  if (DESTROYS[elemB] === elemA) return 1;
+  if (DESTROYS[elemA] === elemB) return 2;
+  return 3;
+}
+
+function getMayaCompatScore(maya, todayKin) {
+  var r = getMayaResonance(maya, todayKin);
+  return clampScore(2 + r); /* 2〜5 */
+}
+
+function getKanshiPanScore(kanshi, pan) {
+  var ys = gogyoCompatScore(kanshi.stemElem, GOGYO[pan.yearStar]);
+  var ms = gogyoCompatScore(kanshi.branchElem, GOGYO[pan.monthStar]);
+  var ds = gogyoCompatScore(kanshi.stemElem, GOGYO[pan.dayStar]);
+  return clampScore((ys + ms + ds) / 3);
+}
+
+var CAT_WEIGHTS = {
+  overall:{ y:0.9, m:1.1, d:1.3, kh:1.0, my:1.0 },
+  money:  { y:1.0, m:1.0, d:1.2, kh:1.1, my:0.9 },
+  love:   { y:0.8, m:1.2, d:1.2, kh:1.0, my:1.1 },
+  work:   { y:1.1, m:1.1, d:1.0, kh:1.0, my:0.9 },
+  action: { y:0.9, m:1.0, d:1.4, kh:1.1, my:1.0 }
+};
+
+function buildFortuneContext(year, month, day, gender) {
+  var today = new Date();
+  var eff = getEffectiveStar(year, month, day);
+  var maya = getKin(year, month, day);
+  var pan = getTodayPan(today);
+  var todayKin = getKin(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  return {
+    birth: {
+      year: year, month: month, day: day, gender: gender,
+      honmei: eff.honmei.star, tsukimei: eff.tsukimei.star,
+      maya: maya, eto: getEto(year, month, day),
+      sexagenary: getSexagenary60(year, month, day), eff: eff
+    },
+    today: { pan: pan, maya: todayKin, date: today }
+  };
+}
+
+function computeUniversalScore(ctx, cat) {
+  var b = ctx.birth, p = ctx.today.pan, w = CAT_WEIGHTS[cat || 'overall'];
+  var hon = b.honmei, tsu = b.tsukimei;
+  var parts = [
+    getBaseScore(hon, p.yearStar) * w.y,
+    getBaseScore(hon, p.monthStar) * w.m,
+    getBaseScore(hon, p.dayStar) * w.d,
+    getBaseScore(tsu, p.yearStar) * w.y,
+    getBaseScore(tsu, p.monthStar) * w.m,
+    getBaseScore(tsu, p.dayStar) * w.d,
+    getKanshiPanScore(b.sexagenary, p) * w.kh,
+    getMayaCompatScore(b.maya, ctx.today.maya) * w.my
+  ];
+  if (cat) {
+    for (var i = 0; i < 6; i++) {
+      var star = i < 3 ? hon : tsu;
+      var panStar = i % 3 === 0 ? p.yearStar : (i % 3 === 1 ? p.monthStar : p.dayStar);
+      parts[i] = categoryScore(star, panStar, cat) * (i < 3 ? [w.y, w.m, w.d][i] : [w.y, w.m, w.d][i % 3]);
+    }
+  }
+  var sum = 0;
+  parts.forEach(function(v){ sum += v; });
+  return clampScore(sum / parts.length);
+}
+
+function getVarietyIndex(ctx, slot) {
+  var b = ctx.birth, t = ctx.today;
+  return (
+    b.honmei * 131 + b.tsukimei * 127 + b.sexagenary.idx * 113 + b.maya.kin * 109 + b.maya.tone * 107 +
+    t.pan.yearStar * 103 + t.pan.monthStar * 101 + t.pan.dayStar * 97 + t.maya.kin * 89 + slot * 83
+  );
+}
+
+/* ── 運勢・美容・ラッキーパーソン 文言バリエーション ── */
+var FORTUNE_LEVEL_TAIL = {
+  overall:['今日は整える日。','流れに乗れる日。','全力で活かせる日。'],
+  money:['堅実さが守りになる。','タイミングを大切に。','積極的に動いて吉。'],
+  love:['素直さが縁を呼ぶ。','言葉より態度で。','心を開くと吉。'],
+  work:['計画と実行のバランスを。','粘りが評価される。','大胆に動いて吉。'],
+  action:['小さく試してから。','一歩踏み出す日。','勢いに乗って吉。']
+};
+var CAT_FOCUS = {
+  overall:['総合運','一日の基調','心身のバランス','運気の流れ'],
+  money:['金運','収支','財の流れ','稼ぎ方'],
+  love:['恋愛運','縁','心の距離','愛情'],
+  work:['仕事運','評価','成果','キャリア'],
+  action:['行動運','一歩','決断','動き方']
+};
+
+function buildFortuneParams(ctx, cat, levelIdx) {
+  var b = ctx.birth, pan = ctx.today.pan, t = ctx.today;
+  return {
+    hnName: STAR_NAMES[b.honmei], tsName: STAR_NAMES[b.tsukimei],
+    yPan: STAR_NAMES[pan.yearStar], mPan: STAR_NAMES[pan.monthStar], dPan: STAR_NAMES[pan.dayStar],
+    yElem: GOGYO[pan.yearStar], mElem: GOGYO[pan.monthStar], dElem: GOGYO[pan.dayStar],
+    kanshi: b.sexagenary.name, stemElem: b.sexagenary.stemElem, branchElem: b.sexagenary.branchElem,
+    kin: b.maya.kin, seal: b.maya.sunSeal.name, tone: b.maya.tone,
+    todayKin: t.maya.kin, todaySeal: t.maya.sunSeal.name,
+    etoName: b.eto.name, etoTrait: b.eto.trait,
+    yRel: getGogyoRelationPhrase(b.honmei, pan.yearStar),
+    mRel: getGogyoRelationPhrase(b.tsukimei, pan.monthStar),
+    dRel: getGogyoRelationPhrase(b.tsukimei, pan.dayStar),
+    kScore: getKanshiPanScore(b.sexagenary, pan),
+    mRes: getMayaResonance(b.maya, t.maya),
+    focus: CAT_FOCUS[cat][levelIdx % CAT_FOCUS[cat].length],
+    level: levelIdx, cat: cat
+  };
+}
+
+var FORTUNE_PATTERN = [
+  function(p){ return '年盤'+p.yPan+'（'+p.yElem+'）──'+p.yRel+'。'+p.focus+'は年の流れに沿って整えると吉。'; },
+  function(p){ return '月盤'+p.mPan+'（'+p.mElem+'）──'+p.mRel+'。'+p.etoName+'の'+p.etoTrait+'を活かすと'+p.focus+'が開ける。'; },
+  function(p){ return '日盤'+p.dPan+'（'+p.dElem+'）──'+p.dRel+'。今日の一歩が'+p.focus+'を左右する。'; },
+  function(p){ return p.kanshi+'の'+p.stemElem+'・'+p.branchElem+'が三盤と響く（相性'+p.kScore+'/5）。'+p.kanshi+'の知恵を借りて。'; },
+  function(p){ return 'マヤKIN'+p.kin+'（'+p.seal+'・音'+p.tone+'）×今日KIN'+p.todayKin+'（'+p.todaySeal+'）。共鳴度'+p.mRes+'/3。'; },
+  function(p){ return '本命'+p.hnName+'×月命'+p.tsName+'の視点で、年盤'+p.yPan+'・月盤'+p.mPan+'・日盤'+p.dPan+'を読むと'+p.focus+'の鍵が見える。'; },
+  function(p){ return p.etoName+'生まれのあなたに、'+p.mPan+'の月盤は'+p.mRel+'。'+p.seal+'の紋章が後押し。'; },
+  function(p){ return '銀河の音'+p.tone+'のリズムで'+p.focus+'を整える。日盤'+p.dPan+'の'+p.dElem+'の気に合わせて動いて。'; },
+  function(p){ return '年'+p.yElem+'・月'+p.mElem+'・日'+p.dElem+'の三層。'+p.kanshi+'とKIN'+p.kin+'が織る今日の'+p.focus+'。'; },
+  function(p){ return p.tsName+'の月命×'+p.dPan+'の日盤──'+p.dRel+' '+p.etoTrait+'を意識して。'; },
+  function(p){ return '今日の'+p.todaySeal+'（KIN'+p.todayKin+'）が'+p.seal+'のあなたと響く。'+p.focus+'は直感を信じて。'; },
+  function(p){ return p.kanshi+'×'+p.yPan+'×'+p.mPan+'×'+p.dPan+'。盤と干支の重なりが'+p.focus+'の答えを示す。'; }
+];
+
+var FORTUNE_EXTRA = {
+  overall:[
+    '年盤の大きな流れを先に確認してから動く。','月盤のリズムに合わせると一日が整う。','日盤のエネルギーを午前中に活かして。',
+    '六十干支の知恵を借り、焦らず進む。','マヤKINの共鳴を信じ、直感を大切に。','本命と月命の両方の視点で判断する。',
+    '年盤で方向、月盤でペース、日盤で実行。','干支の日に自分らしい一歩を。','銀河の音が示すタイミングを意識。',
+    '比和・相生の日は積極的に、相剋の日は守りを。','三盤のうち一番強い気に乗る。','マヤ紋章のイメージを一日のテーマに。',
+    '生年月日の六十干支が持つ個性を活かす。','今日KINと自分KINの差を楽しむ視点で。','年盤の星を持つ人の言葉に耳を傾けて。',
+    '月盤の柔らかさで人間関係を整える。','日盤の勢いで午後を動かす。','干支と九星の両方から読むと精度が上がる。',
+    '呼吸を整えると盤の気と同調しやすい。','盤の五行バランスを意識する。','小さな成功を積み重ねる一日に。',
+    '無理に攻めず、流れに逆らわない。','自分の本命星の強みを一つだけ意識。','月命星の内側の声を聞く時間を。'
+  ],
+  money:[
+    '年盤で大きな流れ、日盤で実利を確認。','月盤のタイミングで入出を整える。','干支の堅実さが財を守る。',
+    'マヤの音が直感を助ける投資判断に。','小さな積み重ねが今日の金運の鍵。','年盤の星が示す長期の方向性を確認。',
+    '日盤の気が強い時間帯に重要な取引を。','月盤のリズムに合わせた支出計画を。','六十干支の慎重さで衝動買いを防ぐ。',
+    'KIN共鳴の日は直感で良い縁が。','比和の日は安定収入、相生の日は増やす。','相剋の日は支出を見直す好機。',
+    '本命星の金運特性を活かした行動を。','月命星の視点で「本当に必要か」を問う。','年盤×月盤で「攻め」と「守り」を分ける。',
+    '現金より体験への投資も吉。','レシートと記録を丁寧に。','人との縁が間接的な財運を呼ぶ。',
+    '午前は計画、午後は実行のリズム。','不要なサブスクを一つ見直す。','感謝の気持ちが循環を生む。'
+  ],
+  love:[
+    '月盤の柔らかさを大切に。','日盤の出会いに素直に応える。','干支の縁を信じて心を開く。',
+    'マヤ紋章が共鳴する人に注目。','言葉より態度で伝える。','年盤の流れで関係の大きな方向を見る。',
+    '月命星の感受性を大切に。','日盤の気が強い時間に連絡を。','KIN共鳴の相手との会話が深まる。',
+    '比和の日は自然体、相生の日は積極的に。','相剋の日は言い過ぎに注意。','銀河の音が示す距離感を意識。',
+    '本命星の恋愛パターンを知って活かす。','月盤の星を持つ人との縁が深まりやすい。','六十干支の知恵で誤解を防ぐ。',
+    '笑顔一つが今日の最大の武器。','相手のペースを尊重する余裕を。','過去より今この瞬間を大切に。',
+    'SNSより直接の会話を優先。','小さな気遣いが大きな縁を呼ぶ。','自分を大切にすることが愛を引く。'
+  ],
+  work:[
+    '年盤の方向性を確認してから動く。','月盤で計画、日盤で実行。','六十干支の粘りが評価される。',
+    'マヤKINが創造性を刺激。','チーム連携が今日の鍵。','本命星の仕事スタイルを活かす。',
+    '月命星の内面の強みを仕事に。','日盤の気が高い時間帯に重要タスクを。','年盤×月盤で中長期と短期を分ける。',
+    'KIN共鳴の日はアイデアが冴える。','比和の日はルーティン、相生の日は提案を。','相剋の日は確認と修正に集中。',
+    '銀河の音のリズムで集中力を高める。','干支の知恵で人間関係の摩擦を和らげる。','一つだけ「今日完了」を決める。',
+    '報告・連絡・相談を怠らない。','先輩・後輩どちらにも学びがある。','完璧より完了を優先する日。',
+    'デスクを整えると頭も冴える。','15分の休憩が午後の成果を変える。','自分の強みを一つだけ前面に出す。'
+  ],
+  action:[
+    '日盤の勢いに乗って動く。','月盤で準備、日盤で実行。','干支の直感を信じて一歩。',
+    'マヤの音がタイミングを示す。','迷ったら小さく試す。','年盤の流れに逆らわない動き方を。',
+    '月命星の内なる衝動を大切に。','午前中に一つ決断を。','KIN共鳴の日は直感でGO。',
+    '比和の日はルーティン、相生の日は新しいことへ。','相剋の日は慎重に、でも止まらない。','三盤のうち日盤に最も合わせた行動を。',
+    '60秒ルール：考えすぎる前に動く。','一歩だけでも前に進めば流れが変わる。','体を動かすと星の気と同調する。',
+    '散歩10分が答えを運んでくる。','今日は「やらないこと」を一つ決める。','勢いを恐れず、でも安全確認は忘れず。',
+    '仲間に声をかけると動きが加速する。','地図を描いてから動くと迷わない。','小さな成功体験を積み重ねる。'
+  ]
+};
+
+function buildBeautyParams(ctx, level) {
+  var b = ctx.birth, pan = ctx.today.pan, t = ctx.today;
+  return {
+    hnName: STAR_NAMES[b.honmei], yPan: STAR_NAMES[pan.yearStar], mPan: STAR_NAMES[pan.monthStar],
+    dPan: STAR_NAMES[pan.dayStar], kanshi: b.sexagenary.name, seal: b.maya.sunSeal.name,
+    tone: b.maya.tone, todaySeal: t.maya.sunSeal.name, yElem: GOGYO[pan.yearStar],
+    mElem: GOGYO[pan.monthStar], dElem: GOGYO[pan.dayStar], level: level
+  };
+}
+
+var BEAUTY_PATTERN = [
+  function(p, k){ return '年盤'+p.yPan+'（'+p.yElem+'）の安定感を'+({hair:'髪',makeup:'メイク',scent:'香り'}[k])+'に。'; },
+  function(p, k){ return '月盤'+p.mPan+'（'+p.mElem+'）の柔らかさを'+({hair:'前髪',makeup:'チーク',scent:'ミドルノート'}[k])+'に。'; },
+  function(p, k){ return '日盤'+p.dPan+'（'+p.dElem+'）の明るさを'+({hair:'毛先',makeup:'リップ',scent:'トップノート'}[k])+'に。'; },
+  function(p, k){ return p.kanshi+'の個性をさりげなく'+({hair:'一本のメッシュ',makeup:'ポイントカラー',scent:'ベースノート'}[k])+'で。'; },
+  function(p, k){ return p.seal+'×'+p.todaySeal+'の共鳴を'+({hair:'カラー',makeup:'トーン',scent:'香調'}[k])+'で表現。'; },
+  function(p, k){ return '銀河の音'+p.tone+'に合う'+({hair:'スタイル',makeup:'仕上げ',scent:'香り'}[k])+'を選んで。'; },
+  function(p, k){ return '本命'+p.hnName+'×日盤'+p.dPan+'──'+({hair:'ライン',makeup:'発色',scent:'余韻'}[k])+'が運気UP。'; },
+  function(p, k){ return '年'+p.yElem+'・月'+p.mElem+'・日'+p.dElem+'の五行に合わせた'+({hair:'セット',makeup:'カラー',scent:'ブレンド'}[k])+'。'; },
+  function(p, k){ return p.kanshi+'の'+({hair:'知恵',makeup:'引き算',scent:'大地の香'}[k])+'が今日の秘訣。'; },
+  function(p, k){ return 'KIN'+p.seal+'のイメージを'+({hair:'シルエット',makeup:'血色',scent:'アロマ'}[k])+'で纏って。'; }
+];
+
+var BEAUTY_EXTRA = {
+  hair:[
+    '年盤の安定感を髪のラインで。','月盤の柔らかさを前髪に。','日盤の明るさを毛先に。',
+    '干支の個性を一本入れて。','マヤ紋章カラーと相性◎。','比和の日は自然な質感を活かして。',
+    '相生の日は軽やかな動きを。','相剋の日はシンプルにまとめる。','午前中のセットが一日を決める。',
+    '湿気対策を念入りに。','頭皮マッサージで気の巡りを。','お気に入りのヘアオイルを使う日。',
+    '鏡を見るたびに自信が湧くラインを。','季節の色を一本だけ取り入れて。','後れ毛で柔らかさをプラス。',
+    '外ハネより内巻きが今日は吉。','アップよりダウンで親しみやすく。','自然乾燥で質感を活かして。',
+    'ヘアアクセは一つだけに絞る。','分け目をいつもと変えると運気刷新。','トリートメントで艶を出して。'
+  ],
+  makeup:[
+    '年盤に合わせた落ち着きカラー。','月盤に映える血色感。','日盤に合う発色を。',
+    '干支の知恵で引き算メイク。','銀河の音に合うトーンで。','比和の日はナチュラル仕上げ。',
+    '相生の日はワンポイントカラー。','相剋の日はベースを丁寧に。','目元よりリップを主役に。',
+    '下地の保湿を念入りに。','ハイライトは控えめに上品に。','眉の形を整えると全体が決まる。',
+    '指で馴染ませると自然な仕上がり。','持ち運びコスメで午後も調整。','鏡の前で深呼吸してから始める。',
+    '色数を3色以内に抑える。','チークの位置で印象が変わる。','マスカラは1本だけ丁寧に。',
+    'リップは今日のラッキーカラーで。','パウダーでテカリを抑えて清潔感。','メイク時間を楽しむ余裕を。'
+  ],
+  scent:[
+    '年盤：落ち着いたベースノート。','月盤：フローラルで縁を。','日盤：軽やかなトップノート。',
+    '干支：大地や木の香り。','マヤ：紋章イメージの香り。','比和の日は無香料かほのかな香り。',
+    '相生の日はシトラス系で活性化。','相剋の日はラベンダーで心を整える。','付けすぎ注意、近くで感じる程度。',
+    '手首と首筋の二点に。','髪に軽く香るミストも◎。','午前と午後で香りを変えるのも吉。',
+    'アロマオイルでリラックス。','自然の香り（森・海）をイメージ。','今日のラッキーカラーを香りで表現。',
+    '香水の前に無香料クリームを。','持ち歩き用にミニサイズを。','就寝前は別の香りで切り替え。',
+    '香りで記憶に残る一日を。','好きな香りが最強のラッキー。','深呼吸して香りを楽しむ時間を。'
+  ]
+};
+
+function buildPersonParams(ctx) {
+  var b = ctx.birth, pan = ctx.today.pan, t = ctx.today;
+  return {
+    hnName: STAR_NAMES[b.honmei], yPan: STAR_NAMES[pan.yearStar], mPan: STAR_NAMES[pan.monthStar],
+    dPan: STAR_NAMES[pan.dayStar], kanshi: b.sexagenary.name, seal: b.maya.sunSeal.name,
+    tone: b.maya.tone, todayKin: t.maya.kin, todaySeal: t.maya.sunSeal.name,
+    etoName: b.eto.name, mRes: getMayaResonance(b.maya, t.maya)
+  };
+}
+
+var PERSON_PATTERN = [
+  function(p){ return '今日は'+p.mPan+'の月盤・'+p.kanshi+'の気と共鳴しやすい方です。'; },
+  function(p){ return '年盤'+p.yPan+'の星を持つ方、または日盤'+p.dPan+'の気に強い方が縁を深めます。'; },
+  function(p){ return p.kanshi+'と相生の関係にある方との会話が運気を上げます。'; },
+  function(p){ return 'マヤKIN共鳴度'+p.mRes+'/3──'+p.seal+'と'+p.todaySeal+'が響く方に注目。'; },
+  function(p){ return '銀河の音'+p.tone+'と同じか補完関係の方が理解者になりやすい。'; },
+  function(p){ return p.etoName+'の知恵を持つ方、または'+p.hnName+'を育てる五行の方。'; },
+  function(p){ return '穏やかな笑顔で、'+p.mPan+'の月盤のエネルギーを自然に持つ方。'; },
+  function(p){ return '今日KIN'+p.todayKin+'（'+p.todaySeal+'）と縁のある方──偶然の再会に注意。'; },
+  function(p){ return '年盤'+p.yPan+'×月盤'+p.mPan+'の組み合わせを持つ方が良きアドバイザーに。'; },
+  function(p){ return p.kanshi+'×'+p.dPan+'の日盤──盤と干支が調和する方との協力が吉。'; }
+];
+
+var PERSON_EXTRA = [
+  '年盤の星を持つ人','月盤の気と調和する人','日盤のエネルギーに強い人',
+  '六十干支が相生の人','マヤKINが共鳴する人','銀河の音が同じ・補完の人',
+  '五行があなたを育てる人','穏やかな笑顔の人','信頼できる先輩・友人',
+  '意外な場所で出会う縁の人','昔の知り合い','新しいコミュニティの人',
+  '年上の理解者','同世代の共感者','年下から学びをもらえる人',
+  '仕事関係の協力者','趣味の仲間','家族に近い存在の人',
+  '地元の縁の人','旅先・移動中の縁','オンライン越しの縁',
+  '沈黙も心地よい人','言葉より行動で示す人','直感が鋭い人'
+];
+
+function pickFortuneText(db, cat, levelIdx, ctx) {
+  var slot = cat === 'overall' ? 1 : ({money:2,love:3,work:4,action:5}[cat] || 1);
+  var idx = getVarietyIndex(ctx, slot);
+  var pan = ctx.today.pan;
+  var hint = '【年盤'+STAR_NAMES[pan.yearStar]+'・月盤'+STAR_NAMES[pan.monthStar]+'・日盤'+STAR_NAMES[pan.dayStar]+'／'+ctx.birth.sexagenary.name+'×KIN'+ctx.birth.maya.kin+'】';
+  var base = db[cat][levelIdx];
+  var p = buildFortuneParams(ctx, cat, levelIdx);
+  var patIdx = idx % FORTUNE_PATTERN.length;
+  var extraIdx = Math.floor(idx / FORTUNE_PATTERN.length) % FORTUNE_EXTRA[cat].length;
+  var composed = FORTUNE_PATTERN[patIdx](p);
+  var extra = FORTUNE_EXTRA[cat][extraIdx];
+  var tail = FORTUNE_LEVEL_TAIL[cat][levelIdx];
+  return hint + '\n' + base + '\n' + composed + ' ' + extra + ' ' + tail;
+}
+
+function pickBeautyText(arr, level, ctx, slot, extraKey) {
+  var idx = getVarietyIndex(ctx, slot);
+  var p = buildBeautyParams(ctx, level);
+  var patIdx = idx % BEAUTY_PATTERN.length;
+  var extraIdx = Math.floor(idx / BEAUTY_PATTERN.length) % BEAUTY_EXTRA[extraKey].length;
+  var composed = BEAUTY_PATTERN[patIdx](p, extraKey);
+  var extra = BEAUTY_EXTRA[extraKey][extraIdx];
+  return arr[level] + '\n' + composed + ' ' + extra;
+}
+
+function pickLuckyItems(ctx) {
+  var b = ctx.birth, idx = getVarietyIndex(ctx, 20);
+  var pool = STAR_LUCKY[b.honmei].concat([
+    MAYA_LUCKY[b.maya.sunSeal.no],
+    KANSHI_LUCKY[b.sexagenary.idx],
+    KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.dayStar) % 60],
+    MAYA_LUCKY[ctx.today.maya.sunSeal.no],
+    KANSHI_LUCKY[(b.sexagenary.idx + b.maya.tone) % 60],
+    KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.monthStar * 7) % 60],
+    KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.yearStar * 11) % 60]
+  ]);
+  var seen = {}, out = [];
+  for (var i = 0; i < pool.length && out.length < 5; i++) {
+    var item = pool[(idx + i) % pool.length];
+    if (!seen[item]) { seen[item] = true; out.push(item); }
+  }
+  return out;
+}
+
+function pickLuckyPerson(ctx) {
+  var b = ctx.birth, idx = getVarietyIndex(ctx, 30);
+  var lp = LUCKY_PERSON[b.honmei];
+  var p = buildPersonParams(ctx);
+  var patIdx = idx % PERSON_PATTERN.length;
+  var extraIdx = Math.floor(idx / PERSON_PATTERN.length) % PERSON_EXTRA.length;
+  var traitLine = PERSON_PATTERN[patIdx](p);
+  var extra = PERSON_EXTRA[extraIdx];
+  return {
+    badge: lp.badge + ' ／ ' + extra,
+    traits: lp.traits + ' ' + traitLine
+  };
 }
 
 /* ============================================================
@@ -1997,24 +2365,23 @@ document.getElementById('btn-fortune').addEventListener('click', function() {
   }
 
   var today   = new Date();
-  var eff     = getEffectiveStar(year, month, day);
-  var maya    = getKin(year, month, day);
-  var todayKin= getKin(today.getFullYear(), today.getMonth()+1, today.getDate());
-  var dailyStar = getDailyKyusei(today);
-  var honmeiStar = eff.honmei.star;
-  var tsukimeiStar = eff.tsukimei.star;
-  var eto = getEto(year, month, day);
+  var ctx     = buildFortuneContext(year, month, day, genderVal);
+  var eff     = ctx.birth.eff;
+  var maya    = ctx.birth.maya;
+  var todayKin= ctx.today.maya;
+  var pan     = ctx.today.pan;
+  var honmeiStar = ctx.birth.honmei;
   var db      = FORTUNE_DB[honmeiStar];
 
-  var overallScore = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, null);
-  var moneyScore   = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'money');
-  var loveScore    = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'love');
-  var workScore    = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'work');
-  var actionScore  = getFinalScore(honmeiStar, tsukimeiStar, dailyStar, maya, todayKin, 'action');
+  var overallScore = computeUniversalScore(ctx, null);
+  var moneyScore   = computeUniversalScore(ctx, 'money');
+  var loveScore    = computeUniversalScore(ctx, 'love');
+  var workScore    = computeUniversalScore(ctx, 'work');
+  var actionScore  = computeUniversalScore(ctx, 'action');
   var mayaResonance = getMayaResonance(maya, todayKin);
 
   renderFortune({
-    eff, maya, todayKin, dailyStar, mayaResonance, eto,
+    ctx, eff, maya, todayKin, pan, mayaResonance, eto: ctx.birth.eto,
     overallScore, moneyScore, loveScore, workScore, actionScore, db,
     gender: genderVal
   });
@@ -2025,13 +2392,14 @@ document.getElementById('btn-fortune').addEventListener('click', function() {
 });
 
 function renderFortune(p) {
-  var eff=p.eff, maya=p.maya, todayKin=p.todayKin, dailyStar=p.dailyStar, db=p.db;
+  var ctx=p.ctx, eff=p.eff, maya=p.maya, todayKin=p.todayKin, pan=p.pan, db=p.db;
+  var dailyStar = pan.dayStar;
   // テーマ適用
   applyTheme(p.overallScore);
 
   // ヘッダー
   document.getElementById('fh-stars').textContent =
-    '本命星 '+eff.honmei.name+' ｜ 月命星 '+eff.tsukimei.name+' ｜ マヤKIN '+maya.kin;
+    '本命星 '+eff.honmei.name+' ｜ 月命星 '+eff.tsukimei.name+' ｜ '+ctx.birth.sexagenary.name+' ｜ マヤKIN '+maya.kin;
   document.getElementById('fh-title').textContent =
     '太陽の紋章：'+maya.sunSeal.name+'　銀河の音：'+maya.tone;
   document.getElementById('fh-maya').textContent =
@@ -2041,8 +2409,8 @@ function renderFortune(p) {
   var t = new Date();
   document.getElementById('fh-today').textContent =
     '今日 '+t.getFullYear()+'/'+(t.getMonth()+1)+'/'+t.getDate()+'（'+todayW[t.getDay()]+'）'
-    +' ｜ 日盤：'+STAR_NAMES[dailyStar]
-    +' ｜ 今日のKIN：'+todayKin.kin+' ('+todayKin.sunSeal.name+')';
+    +' ｜ 年盤：'+STAR_NAMES[pan.yearStar]+' 月盤：'+STAR_NAMES[pan.monthStar]+' 日盤：'+STAR_NAMES[pan.dayStar]
+    +' ｜ 今日KIN：'+todayKin.kin+' ('+todayKin.sunSeal.name+')';
 
   // 総合運
   var oc = LEVEL_COLORS[p.overallScore];
@@ -2058,13 +2426,13 @@ function renderFortune(p) {
   var levelIdx = scoreToLevel(p.overallScore) - 1;
   var toneLine = TONE_OVERALL[maya.tone] ? TONE_OVERALL[maya.tone][levelIdx] : '';
   document.getElementById('ob-text').textContent =
-    db.overall[levelIdx] + (toneLine ? '\n' + toneLine : '');
+    pickFortuneText(db, 'overall', levelIdx, ctx) + (toneLine ? '\n' + toneLine : '');
 
   // 各カテゴリ
-  setFi('money',  p.moneyScore,  db.money);
-  setFi('love',   p.loveScore,   db.love);
-  setFi('work',   p.workScore,   db.work);
-  setFi('action', p.actionScore, db.action);
+  setFi('money',  p.moneyScore,  pickFortuneText(db, 'money', scoreToLevel(p.moneyScore)-1, ctx));
+  setFi('love',   p.loveScore,   pickFortuneText(db, 'love', scoreToLevel(p.loveScore)-1, ctx));
+  setFi('work',   p.workScore,   pickFortuneText(db, 'work', scoreToLevel(p.workScore)-1, ctx));
+  setFi('action', p.actionScore, pickFortuneText(db, 'action', scoreToLevel(p.actionScore)-1, ctx));
 
   // BEAUTY TODAY（性別で切り替え）
   var beautyLevel = scoreToLevel(p.overallScore) - 1; // 0,1,2
@@ -2072,12 +2440,14 @@ function renderFortune(p) {
   var isMale = (p.gender === 'male');
   var honmeiStar = eff.honmei.star;
   // ヘア
-  document.getElementById('beauty-hair').textContent = bdb.hair[honmeiStar][beautyLevel];
+  document.getElementById('beauty-hair').textContent =
+    pickBeautyText(bdb.hair[honmeiStar], beautyLevel, ctx, 40, 'hair');
   document.getElementById('beauty-hair-sub').textContent =
-    '✦ ' + eff.honmei.name + 'のキーワード：' + STAR_KEYWORDS[honmeiStar];
+    '✦ ' + eff.honmei.name + ' × ' + ctx.birth.sexagenary.name + ' × 日盤' + STAR_NAMES[pan.dayStar];
   // メイク / グルーミング
   var mkGroup = MAYA_MAKEUP_GROUP[maya.sunSeal.no];
-  document.getElementById('beauty-makeup').textContent = bdb.makeup[mkGroup][beautyLevel];
+  document.getElementById('beauty-makeup').textContent =
+    pickBeautyText(bdb.makeup[mkGroup], beautyLevel, ctx, 41, 'makeup');
   document.getElementById('beauty-makeup-sub').textContent =
     '✦ 紋章カラー：' + MAKEUP_GROUP_LABELS[mkGroup];
   // ラベル切り替え
@@ -2086,20 +2456,20 @@ function renderFortune(p) {
     ? '💆 GROOMING ─ グルーミング・スキンケアのポイント'
     : '💄 MAKE UP ─ メイクのポイント';
   // 香り
-  document.getElementById('beauty-scent').textContent = bdb.scent[honmeiStar][beautyLevel];
+  document.getElementById('beauty-scent').textContent =
+    pickBeautyText(bdb.scent[honmeiStar], beautyLevel, ctx, 42, 'scent');
   document.getElementById('beauty-scent-sub').textContent =
-    '✦ 五行：' + GOGYO[honmeiStar] + ' の香り系統';
+    '✦ 年盤'+GOGYO[pan.yearStar]+'・月盤'+GOGYO[pan.monthStar]+'・音'+maya.tone+'の香り';
 
   // ラッキーアイテム
-  var baseItems = STAR_LUCKY[honmeiStar];
-  var bonusItem = MAYA_LUCKY[todayKin.sunSeal.no];
-  var luckHtml = baseItems.map(function(it){
+  var luckyItems = pickLuckyItems(ctx);
+  var luckHtml = luckyItems.map(function(it){
     return '<span class="lucky-tag">'+it+'</span>';
-  }).join('') + '<span class="lucky-tag maya-tag">✦ '+bonusItem+'</span>';
+  }).join('') + '<span class="lucky-tag maya-tag">✦ '+ctx.birth.sexagenary.name+'</span>';
   document.getElementById('lucky-items').innerHTML = luckHtml;
 
   // ラッキーパーソン
-  var lp = LUCKY_PERSON[honmeiStar];
+  var lp = pickLuckyPerson(ctx);
   document.getElementById('lp-badge').textContent = lp.badge;
   document.getElementById('lp-traits').textContent = lp.traits;
 
@@ -2186,21 +2556,22 @@ function renderFortune(p) {
   // 算出根拠
   var mayaResLabel = ['共鳴弱','やや共鳴','共鳴中','強い共鳴'][Math.min(3, p.mayaResonance||0)];
   document.getElementById('today-kin').innerHTML =
-    '<strong>算出根拠</strong><br>'
-    +'本命星：'+eff.honmei.name+' （五行：'+me+'）　月命星：'+eff.tsukimei.name+' （五行：'+meTsuki+'）<br>'
-    +'今日の日盤：'+STAR_NAMES[dailyStar]+' （五行：'+td+'）<br>'
-    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>（本命星ベース）<br>'
-    +'マヤKIN：'+maya.kin+' （'+maya.sunSeal.name+' / 銀河の音'+maya.tone+'）　今日のKIN：'+todayKin.kin+' （'+todayKin.sunSeal.name+' / 音'+todayKin.tone+'）<br>'
-    +'マヤ共鳴度：'+mayaResLabel+'（音・紋章・KIN波の一致：'+(p.mayaResonance||0)+'点・2点以上で運勢加点）<br>'
-    +'デイリーアドバイス：月命'+eff.tsukimei.name+' × 本日'+STAR_NAMES[dailyStar]+' × '+p.eto.name+' × 銀河の音'+maya.tone+'（組合せID '+(getDailyAdviceIndex(eff.tsukimei.star,dailyStar,p.eto.idx,maya.tone)+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString()+'）';
+    '<strong>算出根拠（統合判定）</strong><br>'
+    +'本命星：'+eff.honmei.name+'　月命星：'+eff.tsukimei.name+'　六十干支：'+ctx.birth.sexagenary.name+'（'+ctx.birth.sexagenary.stemElem+'・'+ctx.birth.sexagenary.branchElem+'）<br>'
+    +'占う日の九星：年盤 '+STAR_NAMES[pan.yearStar]+' ／ 月盤 '+STAR_NAMES[pan.monthStar]+' ／ 日盤 '+STAR_NAMES[pan.dayStar]+'<br>'
+    +'マヤ：あなた KIN'+maya.kin+'（'+maya.sunSeal.name+'・音'+maya.tone+'）→ 今日 KIN'+todayKin.kin+'（'+todayKin.sunSeal.name+'・音'+todayKin.tone+'）<br>'
+    +'マヤ共鳴度：'+mayaResLabel+'（'+p.mayaResonance+'点）<br>'
+    +'今日との相性：<span class="gogyo-rel" style="background:'+relColor+'22;color:'+relColor+';border:1px solid '+relColor+'44">'+relLabel+'</span>（本命星×日盤）<br>'
+    +'デイリーアドバイスID：'+(getDailyAdviceIndex(eff.tsukimei.star,pan.dayStar,p.eto.idx,maya.tone)+1).toLocaleString()+'/'+DAILY_ADVICE_MAX.toLocaleString();
 }
 
-function setFi(cat, score, texts) {
+function setFi(cat, score, text) {
   var c = LEVEL_COLORS[score];
   var el = document.getElementById('fi-'+cat+'-stars').closest('.fortune-item');
   if (el) el.style.setProperty('--fi-color', c);
   document.getElementById('fi-'+cat+'-stars').innerHTML = starsHTML(score, c);
-  document.getElementById('fi-'+cat+'-text').textContent = texts[scoreToLevel(score)-1];
+  document.getElementById('fi-'+cat+'-text').textContent = text;
+  document.getElementById('fi-'+cat+'-text').style.whiteSpace = 'pre-line';
 }
 
 function escHtmlStr(s){
