@@ -339,7 +339,7 @@
     .ob-stars { font-size: 1.8rem; letter-spacing: 6px; margin-bottom: 8px; }
     .ob-level { font-size: 1.4rem; font-weight: 900; margin-bottom: 12px;
       letter-spacing: .06em; }
-    .ob-text { font-size: .9rem; line-height: 1.75; color: var(--text-sub); white-space: pre-line; }
+    .ob-text { font-size: .85rem; line-height: 1.65; color: var(--text-sub); white-space: pre-line; }
 
     /* 各運勢カード */
     .fortune-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
@@ -354,7 +354,7 @@
     .fi-label { font-size: .68rem; font-weight: 700; letter-spacing: .1em;
       color: var(--text-xs); margin-bottom: 6px; }
     .fi-stars { font-size: 1rem; letter-spacing: 2px; margin-bottom: 5px; }
-    .fi-text { font-size: .78rem; color: var(--text-sub); line-height: 1.65; }
+    .fi-text { font-size: .82rem; color: var(--text-sub); line-height: 1.6; white-space: pre-line; }
 
     /* BEAUTY TODAY */
     .beauty-section-title {
@@ -391,7 +391,7 @@
     .makeup-card .beauty-card-label { color: #f9a8d4; }
     .scent-card .beauty-card-label { color: #6ee7b7; }
     .beauty-text {
-      font-size: .9rem; line-height: 1.8; color: var(--text-sub);
+      font-size: .84rem; line-height: 1.65; color: var(--text-sub);
     }
     .beauty-sub {
       font-size: .72rem; color: var(--text-xs); margin-top: 6px;
@@ -405,14 +405,15 @@
     }
     .lucky-title { font-size: .7rem; font-weight: 700; letter-spacing: .14em;
       color: #6ee7b7; margin-bottom: 12px; }
-    .lucky-items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .lucky-items { display: flex; flex-wrap: wrap; gap: 10px 8px; align-items: flex-start; }
     .lucky-tag {
-      padding: 6px 14px; border-radius: 20px;
+      padding: 8px 14px; border-radius: 20px;
       background: #0a2e1a; border: 1px solid #065f46;
-      font-size: .82rem; color: #a7f3d0; font-weight: 600;
+      font-size: .76rem; color: #a7f3d0; font-weight: 600;
+      line-height: 1.4; flex: 0 1 auto; max-width: 100%;
     }
-    .lucky-tag.maya-tag {
-      border-color: #6d28d955; background: #180d38; color: #c4b5fd;
+    .lucky-sub {
+      margin-top: 12px; font-size: .74rem; color: #a7f3d0; opacity: .85;
     }
 
     /* ラッキーパーソン */
@@ -431,7 +432,7 @@
       background: #2e1065; border: 1px solid #7c3aed66;
       font-size: .82rem; color: #ddd6fe; font-weight: 700;
     }
-    .person-traits { font-size: .85rem; color: var(--text-sub); line-height: 1.75; }
+    .person-traits { font-size: .84rem; color: var(--text-sub); line-height: 1.65; }
 
     /* デイリーアドバイス */
     .advice-card {
@@ -953,6 +954,12 @@ function categoryScore(myStar, todayStar, cat) {
 
 function clampScore(s) { return Math.min(5, Math.max(1, Math.round(s))); }
 
+function clampScoreBirth(s, ctx) {
+  var b = ctx.birth;
+  var frac = (b.day + b.maya.kin + b.sexagenary.idx * 3) % 10 / 10;
+  return Math.min(5, Math.max(1, Math.round(s + frac - 0.45)));
+}
+
 /* 本命星＋月命星を併用した九星スコア */
 function getKyuseiCombinedScore(honmeiStar, tsukimeiStar, todayStar, cat) {
   var s1 = cat ? categoryScore(honmeiStar, todayStar, cat) : getBaseScore(honmeiStar, todayStar);
@@ -1108,7 +1115,7 @@ function computeUniversalScore(ctx, cat) {
   ];
   var sum = 0, wSum = 0;
   items.forEach(function(it){ sum += it[0] * it[1]; wSum += it[1]; });
-  return clampScore(sum / wSum);
+  return clampScoreBirth(sum / wSum, ctx);
 }
 
 function getVarietyIndex(ctx, slot) {
@@ -1315,39 +1322,36 @@ function pickFortuneText(db, cat, levelIdx, ctx) {
   var idx = getVarietyIndex(ctx, slot);
   var p = buildFortuneParams(ctx, cat, levelIdx);
   var patIdx = idx % FORTUNE_PATTERN.length;
-  var extraIdx = Math.floor(idx / FORTUNE_PATTERN.length) % FORTUNE_EXTRA[cat].length;
   var composed = FORTUNE_PATTERN[patIdx](p);
-  var extra = FORTUNE_EXTRA[cat][extraIdx];
-  var tail = FORTUNE_LEVEL_TAIL[cat][levelIdx];
-  var base = db[cat][levelIdx];
-  var catLabel = {overall:'総合運',money:'金運',love:'恋愛運',work:'仕事運',action:'行動運'}[cat] || '運勢';
-  var head = p.kanshi+'・'+p.seal+'・生まれ日盤'+p.birthDayPan+'の今日の'+catLabel+'。';
-  return head + '\n' + base + '\n' + composed + ' ' + extra + ' ' + tail;
+  var head = p.kanshi+'・'+p.seal+'・生まれ日盤'+p.birthDayPan+'。';
+  if (cat === 'overall') {
+    return head + '\n' + db[cat][levelIdx] + '\n' + composed;
+  }
+  return head + '\n' + composed;
+}
+
+function firstSentence(text) {
+  var i = text.indexOf('。');
+  return i >= 0 ? text.slice(0, i + 1) : text;
 }
 
 function pickBeautyText(arr, level, ctx, slot, extraKey) {
   var idx = getVarietyIndex(ctx, slot);
-  var p = buildBeautyParams(ctx, level);
-  var patIdx = idx % BEAUTY_PATTERN.length;
-  var extraIdx = Math.floor(idx / BEAUTY_PATTERN.length) % BEAUTY_EXTRA[extraKey].length;
-  var composed = BEAUTY_PATTERN[patIdx](p, extraKey);
-  var extra = BEAUTY_EXTRA[extraKey][extraIdx];
-  return arr[level] + '\n' + composed + ' ' + extra;
+  var extra = BEAUTY_EXTRA[extraKey][idx % BEAUTY_EXTRA[extraKey].length];
+  return firstSentence(arr[level]) + ' ' + extra;
 }
 
 function pickLuckyItems(ctx) {
   var b = ctx.birth, idx = getVarietyIndex(ctx, 20);
-  var pool = STAR_LUCKY[b.honmei].concat([
-    MAYA_LUCKY[b.maya.sunSeal.no],
+  var pool = [
     KANSHI_LUCKY[b.sexagenary.idx],
+    MAYA_LUCKY[b.maya.sunSeal.no],
+    STAR_LUCKY[b.honmei][idx % STAR_LUCKY[b.honmei].length],
     KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.dayStar) % 60],
-    MAYA_LUCKY[ctx.today.maya.sunSeal.no],
-    KANSHI_LUCKY[(b.sexagenary.idx + b.maya.tone) % 60],
-    KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.monthStar * 7) % 60],
-    KANSHI_LUCKY[(b.sexagenary.idx + ctx.today.pan.yearStar * 11) % 60]
-  ]);
+    MAYA_LUCKY[ctx.today.maya.sunSeal.no]
+  ];
   var seen = {}, out = [];
-  for (var i = 0; i < pool.length && out.length < 5; i++) {
+  for (var i = 0; i < pool.length && out.length < 4; i++) {
     var item = pool[(idx + i) % pool.length];
     if (!seen[item]) { seen[item] = true; out.push(item); }
   }
@@ -1359,12 +1363,10 @@ function pickLuckyPerson(ctx) {
   var lp = LUCKY_PERSON[b.honmei];
   var p = buildPersonParams(ctx);
   var patIdx = idx % PERSON_PATTERN.length;
-  var extraIdx = Math.floor(idx / PERSON_PATTERN.length) % PERSON_EXTRA.length;
   var traitLine = PERSON_PATTERN[patIdx](p);
-  var extra = PERSON_EXTRA[extraIdx];
   return {
-    badge: lp.badge + ' ／ ' + extra,
-    traits: lp.traits + ' ' + traitLine
+    badge: lp.badge,
+    traits: traitLine
   };
 }
 
@@ -2447,9 +2449,7 @@ function renderFortune(p) {
   document.getElementById('ob-level').textContent = LEVEL_LABELS[p.overallScore];
   document.getElementById('ob-level').style.color = oc;
   var levelIdx = scoreToLevel(p.overallScore) - 1;
-  var toneLine = TONE_OVERALL[maya.tone] ? TONE_OVERALL[maya.tone][levelIdx] : '';
-  document.getElementById('ob-text').textContent =
-    pickFortuneText(db, 'overall', levelIdx, ctx) + (toneLine ? '\n' + toneLine : '');
+  document.getElementById('ob-text').textContent = pickFortuneText(db, 'overall', levelIdx, ctx);
 
   // 各カテゴリ
   setFi('money',  p.moneyScore,  pickFortuneText(db, 'money', scoreToLevel(p.moneyScore)-1, ctx));
@@ -2488,7 +2488,7 @@ function renderFortune(p) {
   var luckyItems = pickLuckyItems(ctx);
   var luckHtml = luckyItems.map(function(it){
     return '<span class="lucky-tag">'+it+'</span>';
-  }).join('') + '<span class="lucky-tag maya-tag">✦ '+ctx.birth.sexagenary.name+'</span>';
+  }).join('') + '<div class="lucky-sub">✦ '+ctx.birth.sexagenary.name+'・KIN '+maya.kin+'</div>';
   document.getElementById('lucky-items').innerHTML = luckHtml;
 
   // ラッキーパーソン
